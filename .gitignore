@@ -1,0 +1,27 @@
+# Local secrets
+.env
+.env.local
+
+# Pipeline output / cache (cheap to regenerate, don't commit)
+cache/
+signals.csv
+dashboard_data.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+dist/
+.next/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
