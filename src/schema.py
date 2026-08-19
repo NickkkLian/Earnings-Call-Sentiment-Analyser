@@ -57,6 +57,3 @@ class CallAnalysis(BaseModel):
 
 
 # JSON schema dict (used to constrain LLM outputs)
-def section_json_schema() -> dict:
-    """JSON schema for a single SectionAnalysis — fed to both provider APIs."""
-    return SectionAnalysis.model_json_schema()
