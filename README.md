@@ -56,8 +56,8 @@ flowchart LR
 | Layer | Choice |
 | --- | --- |
 | Transcripts | Financial Modeling Prep API, cached on disk |
-| LLM | Anthropic Claude *or* OpenAI, swappable; both coerced into the same Pydantic models |
-| Structured output | Tool use (Anthropic) / JSON-schema response format (OpenAI) |
+| LLM | Your choice of Claude, OpenAI, Gemini or an OpenAI-compatible server (`--provider`, see the compatibility table below); every reply is validated into the same Pydantic models |
+| Structured output | Default: the JSON schema in the prompt, parsed and validated, with one repair round. Optional `--structured native`: tool use (Anthropic) or structured outputs (OpenAI) |
 | Prices / EPS | yfinance + FMP earnings-surprises endpoint |
 | Wrangling | pandas |
 | Dashboard | static HTML + hand-drawn SVG, no framework, no CDN scripts |
