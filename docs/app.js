@@ -70,7 +70,31 @@ function reconcile(c, q) {
 }
 
 /* ---------- render ---------- */
-function render() {
+// Every render replaces the page's elements, so the control a keyboard user was on disappears and focus drops to <body>:
+// no focus ring, and Tab starts again from the top of the page (found 2026-09-16 with real key presses). The wrapper puts
+// focus back on the same control (same attribute, or the same kind of control at the same position) or, when that control
+// is gone, on the first visible heading of the page.
+function focusKey(el) {
+  if (!el || el === document.body || el === document.documentElement) return null;
+  const scope = el.parentElement && el.parentElement.closest('[id]'), within = scope ? '#' + CSS.escape(scope.id) + ' ' : '', tag = el.tagName.toLowerCase();
+  const tries = ['id', 'data-id', 'data-key', 'data-sort', 'href', 'name'].filter(a => el.getAttribute(a)).map(a => within + tag + '[' + a + '="' + el.getAttribute(a).replace(/["\\]/g, '\\$&') + '"]');
+  const kind = within + tag + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).map(c => CSS.escape(c)).join('.') : '');
+  const index = [...document.querySelectorAll(kind)].indexOf(el);
+  const find = () => { for (const s of tries) { const x = document.querySelector(s); if (x) return x; } return index < 0 ? null : document.querySelectorAll(kind)[index] || null; };
+  find.caret = typeof el.selectionStart === 'number' ? [el.selectionStart, el.selectionEnd] : null;   // a text field keeps its caret
+  return find;
+}
+function restoreFocus(find) {
+  if (!find || (document.activeElement && document.activeElement !== document.body)) return;
+  let el = find();
+  if (!el || !el.getClientRects().length) {
+    el = [...document.querySelectorAll('main h1, main h2, main')].find(x => { const r = x.getBoundingClientRect(); return r.width > 2 && r.height > 2; });
+    if (el && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+  }
+  if (el) { el.focus(); if (find.caret && el.setSelectionRange) try { el.setSelectionRange(find.caret[0], find.caret[1]); } catch (e) { /* not a text field */ } }
+}
+function render() { const find = focusKey(document.activeElement); renderPage(); restoreFocus(find); }
+function renderPage() {
   const main = $('#main'); main.innerHTML = '';
   const data = S.data, tickers = Object.keys(data); if (!data[S.ticker]) S.ticker = tickers[0];
   const c = data[S.ticker], qs = c.quarters, cur = qs[qs.length - 1], prev = qs[qs.length - 2] || cur;
