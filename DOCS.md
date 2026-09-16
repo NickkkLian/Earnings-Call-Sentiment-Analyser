@@ -143,7 +143,7 @@ The fully traced path of one (ticker, quarter) pair:
                     │
                     ▼
        ┌─────────────────────────────────┐
-       │ dashboard.jsx ("Load JSON")     │ ← validates shape, renders 5 panels
+       │ docs/ dashboard ("Load JSON")   │ ← validates shape, renders 5 panels
        └─────────────────────────────────┘
 ```
 
@@ -221,8 +221,8 @@ CallAnalysis(BaseModel):
     .sentiment_gap = prepared.tone - qa.tone   # property
 ```
 
-This is the single source of truth. Both LLM providers are forced to produce
-this shape. Downstream code never branches on provider.
+This is the single source of truth. Every provider's reply is validated against
+this shape (one repair round, then an error). Downstream code never branches on provider.
 
 **To extend:** add a field, run the pipeline once with `--cache-dir /tmp/x`
 to bypass cache, propagate the field through `pipeline.run` and
@@ -256,7 +256,7 @@ fitted multi-factor model.
 
 ### `src/analyzer.py` — the LLM layer
 
-Three classes:
+Four classes:
 
 - `AnthropicAnalyzer` — uses tool-use with `tool_choice` set to force the
   model to call `submit_analysis` with arguments matching the Pydantic
@@ -265,7 +265,12 @@ Three classes:
   accepts the Pydantic class directly. Handles the schema massaging
   (`additionalProperties: false`, required-field promotion) that strict mode
   needs.
-- `CachedAnalyzer` — wraps either, hashes prompt + text + provider + model
+- `JsonAnalyzer` — the default for all four providers (Anthropic, OpenAI, Gemini,
+  OpenAI-compatible) through the dependency-free `src/llm.py`: the schema is stated
+  in the prompt, the reply is validated with Pydantic, one repair round sends the
+  validation errors back, a second failure raises. No vendor-only feature is needed;
+  the two classes above are the opt-in `--structured native` path.
+- `CachedAnalyzer` — wraps any of them, hashes prompt + text + provider/mode + model
   for the cache key.
 
 The system prompt is the single highest-leverage line of code in the
@@ -312,46 +317,24 @@ it. Deliberately thin — most logic lives in the tested modules.
 
 ## 6. Dashboard architecture
 
-### File: `dashboard.jsx`
+### Folder: `docs/`
 
-Single-file React component, ~820 lines. No build step required for the
-artifact runtime.
+A static page (GitHub Pages root): `index.html` + `app.css` (shared design tokens) + `app.js` (~110 lines) +
+`demo-data.js` (four fictional companies in the export shape). No framework, no build step, no CDN scripts;
+the charts are hand-drawn SVG. `docs/check-web.mjs` runs in CI.
 
-**State:**
+**State:** `{ data, custom, ticker }` — the loaded JSON, whether it came from a file, the selected ticker (also in the URL hash).
 
-```javascript
-const [data, setData] = useState(SAMPLE_DATA);   // the loaded JSON
-const [isCustom, setIsCustom] = useState(false); // demo vs custom mode
-const [ticker, setTicker] = useState(...);       // currently selected ticker
-const [status, setStatus] = useState(null);      // toast for load success/errors
-```
+**`validate(obj)`** runs on every load and mirrors the pipeline's export shape: root keyed by ticker; each ticker has
+`company`, `sector`, `quarters` (non-empty), `topics`, `extracts`; each quarter has `label`, `mgmt`, `qa`, `hedging`,
+`guidance`, `eps_surprise`, `ret_5d`, `residual_5d` as finite numbers with tones inside −1..1. Invalid files are rejected
+with a specific message and the current data is kept.
 
-**`SAMPLE_DATA`** is the demo fallback — 4 tickers × 8 quarters of plausible
-mock data. Real pipeline output replaces it via the **Load JSON** button.
+**Panels:** KPI strip (current quarter with delta vs prior), trajectory (management vs Q&A tone, framing gap shaded),
+topic emphasis (weight bar + per-section tone, wide gaps flagged), gap-vs-residual scatter (one point per call, Pearson r
+shown with n), notable extracts (tagged passages), methodology, and an honesty footer.
 
-**`validateData(obj)`** runs on every load. Returns `null` if valid, else a
-specific error string ("META quarter 3: missing 'eps_surprise'") that
-displays in a red toast.
-
-**Charts:** Recharts (`<LineChart>`, `<ScatterChart>`, `<ComposedChart>`).
-All theming is via CSS-in-JS (the `C` constants object) — no Tailwind
-arbitrary classes (those don't work in artifact runtime without JIT).
-
-**Loading custom data flow:**
-
-```
-user clicks "Load JSON"
-  → hidden <input type="file"> fires
-  → FileReader.readAsText()
-  → JSON.parse + validateData
-  → if valid: setData(parsed); setIsCustom(true)
-  → if invalid: setStatus({type: 'err', msg: '...'})
-```
-
-The "Sample" button downloads `SAMPLE_DATA` as JSON — useful for
-inspecting the expected shape if you're hand-crafting data.
-
----
+The previous React/Recharts `dashboard.jsx` was removed in favour of this folder so there is one implementation to keep honest.
 
 ## 7. User guide (running it from zero)
 
@@ -414,11 +397,15 @@ python -m src.export_dashboard signals.csv -o dashboard_data.json
 
 ### View in dashboard
 
+Open `docs/index.html` (or the GitHub Pages site), click **Load JSON** and pick `dashboard_data.json`.
+
+<!-- the paragraphs below predate the static dashboard -->
+
 The fastest way: open [claude.ai](https://claude.ai), paste the contents
-of `dashboard.jsx` as a new artifact, then click the **Load JSON** button
+the static dashboard in `docs/`, then click the **Load JSON** button
 at the top right and select your `dashboard_data.json`.
 
-For a more permanent setup, drop `dashboard.jsx` into any Vite/Next/CRA
+For a more permanent setup, host `docs/` anywhere static (GitHub Pages does it here); there is no build step
 project as a component. Imports are standard (React, recharts,
 lucide-react).
 
@@ -450,16 +437,18 @@ mapping — it's a one-line change per ticker.
 3. Bump the prompt — the cache invalidates automatically.
 4. Surface it in `src/pipeline.py`'s row dict.
 5. Pass it through `src/export_dashboard.py`.
-6. Add a panel/chart in `dashboard.jsx`.
+6. Add a panel/chart in `docs/app.js` (hand-drawn SVG, see `trajectory()` / `scatter()`).
 
 ### Swap the LLM provider mid-stream
 
 ```bash
-python -m src.cli ... --provider openai --model gpt-4o
+python -m src.cli ... --provider openai
+python -m src.cli ... --provider gemini --model <model id>
+python -m src.cli ... --provider openai-compatible --base-url http://localhost:11434/v1 --model <model>
 ```
 
-Or set `LLM_PROVIDER=openai` in `.env`. The cache is keyed on provider so
-you won't get cross-contamination.
+Or set `LLM_PROVIDER` (and `LLM_MODEL`, `LLM_BASE_URL`) in `.env`. The cache is keyed
+on provider, structured-output mode and model, so you won't get cross-contamination.
 
 ### Use a different transcript source
 
@@ -481,9 +470,9 @@ The cache handles re-runs free, so the cost-conscious workflow is:
 python -m src.cli --tickers ... --quarters ... \
     --provider anthropic --model claude-haiku-4-5-20251001
 
-# Re-run interesting subset with stronger model — only those re-extract
+# Re-run interesting subset with a stronger model of your choice — only those re-extract
 python -m src.cli --tickers NVDA,INTC --quarters ... \
-    --provider anthropic --model claude-opus-4-7
+    --provider anthropic --model <a larger model id>
 ```
 
 ---

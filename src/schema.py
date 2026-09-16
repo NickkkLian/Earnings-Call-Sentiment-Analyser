@@ -1,6 +1,6 @@
 """Structured-output schema for earnings-call analysis.
 
-Both Anthropic and OpenAI calls coerce their output into this shape, so
+Every provider's reply is validated against this shape (and repaired once if it does not match), so
 downstream pandas / Plotly code never has to deal with provider quirks.
 """
 from __future__ import annotations

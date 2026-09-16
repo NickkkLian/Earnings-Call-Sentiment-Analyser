@@ -1,0 +1,45 @@
+name: Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.13']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+  eval:
+    # Scores cached model output on eval/passages.json; the negative control must reject a corrupted cache.
+    # The score itself only runs once eval/llm-cache.json exists (populated by `python -m src.eval --llm` with a key).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: python -m src.eval --break
+      - run: |
+          if [ -f eval/llm-cache.json ]; then python -m src.eval; else echo "no eval/llm-cache.json yet — eval not run"; fi
+  web:
+    # The dashboard is static; this checks it ships no external scripts, that the demo data validates against the
+    # loader's own rules, and that a mutated file is rejected.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node docs/check-web.mjs

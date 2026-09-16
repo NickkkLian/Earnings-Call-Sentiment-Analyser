@@ -1,0 +1,218 @@
+{
+  "note": "Synthetic passages for evaluating the LLM extraction. Tags follow src/schema.py Passage.tag; guidance items follow SectionAnalysis.guidance_change. No real company, person or figure appears.",
+  "tags": [
+    "confident",
+    "hedging",
+    "evasion",
+    "admission",
+    "contradiction"
+  ],
+  "pass_threshold": {
+    "tag": 0.8,
+    "guidance_change": 0.8
+  },
+  "passages": [
+    {
+      "id": "p01",
+      "text": "We will ship the new platform in Q3 and we are raising full-year revenue guidance by 8%.",
+      "expected_tag": "confident"
+    },
+    {
+      "id": "p02",
+      "text": "Demand is running well ahead of supply; every unit we build this year is already spoken for.",
+      "expected_tag": "confident"
+    },
+    {
+      "id": "p03",
+      "text": "Gross margin will expand at least 200 basis points next quarter.",
+      "expected_tag": "confident"
+    },
+    {
+      "id": "p04",
+      "text": "We expect to be free-cash-flow positive by the end of this fiscal year, full stop.",
+      "expected_tag": "confident"
+    },
+    {
+      "id": "p05",
+      "text": "Our backlog covers two years of production at current run rates.",
+      "expected_tag": "confident"
+    },
+    {
+      "id": "p06",
+      "text": "Pricing is holding and we do not see that changing this year.",
+      "expected_tag": "confident"
+    },
+    {
+      "id": "p07",
+      "text": "We believe, depending on how the second half develops, we could see modest improvement.",
+      "expected_tag": "hedging"
+    },
+    {
+      "id": "p08",
+      "text": "If conditions allow, we should be in a position to revisit the buyback later in the year.",
+      "expected_tag": "hedging"
+    },
+    {
+      "id": "p09",
+      "text": "We expect, subject to supply availability, that volumes may recover somewhat.",
+      "expected_tag": "hedging"
+    },
+    {
+      "id": "p10",
+      "text": "It is possible that margins normalise, but there are a number of moving parts.",
+      "expected_tag": "hedging"
+    },
+    {
+      "id": "p11",
+      "text": "We are hopeful about the pipeline, though timing remains uncertain.",
+      "expected_tag": "hedging"
+    },
+    {
+      "id": "p12",
+      "text": "We think the trend is likely to continue, assuming no further macro deterioration.",
+      "expected_tag": "hedging"
+    },
+    {
+      "id": "p13",
+      "text": "Analyst: Will the new plant be profitable next year? Management: We are excited about the opportunity the plant represents for our customers.",
+      "expected_tag": "evasion"
+    },
+    {
+      "id": "p14",
+      "text": "Analyst: How many units did you sell in the region? Management: We do not break out results by geography.",
+      "expected_tag": "evasion"
+    },
+    {
+      "id": "p15",
+      "text": "Analyst: Why did the CFO leave? Management: We thank her for her contributions and are pleased with the transition.",
+      "expected_tag": "evasion"
+    },
+    {
+      "id": "p16",
+      "text": "Analyst: Is churn up or down quarter over quarter? Management: Our customers love the product, as the survey scores show.",
+      "expected_tag": "evasion"
+    },
+    {
+      "id": "p17",
+      "text": "Analyst: What is the timeline for regulatory approval? Management: We continue to work constructively with regulators.",
+      "expected_tag": "evasion"
+    },
+    {
+      "id": "p18",
+      "text": "Analyst: Did pricing pressure affect the quarter? Management: Let me step back and talk about our long-term strategy.",
+      "expected_tag": "evasion"
+    },
+    {
+      "id": "p19",
+      "text": "We missed our delivery target this quarter because the ramp took longer than we planned.",
+      "expected_tag": "admission"
+    },
+    {
+      "id": "p20",
+      "text": "Frankly, our execution on the integration has not met our own expectations.",
+      "expected_tag": "admission"
+    },
+    {
+      "id": "p21",
+      "text": "Churn rose in the small-business segment and we did not react quickly enough.",
+      "expected_tag": "admission"
+    },
+    {
+      "id": "p22",
+      "text": "The inventory write-down reflects a forecasting error on our side.",
+      "expected_tag": "admission"
+    },
+    {
+      "id": "p23",
+      "text": "We underestimated the cost of the recall; that is on us.",
+      "expected_tag": "admission"
+    },
+    {
+      "id": "p24",
+      "text": "Yes, we lost that customer, and the loss will show up in next quarter's revenue.",
+      "expected_tag": "admission"
+    },
+    {
+      "id": "p25",
+      "text": "Last quarter we said the facility would be closed by December; today we are describing it as a strategic long-term asset.",
+      "expected_tag": "contradiction"
+    },
+    {
+      "id": "p26",
+      "text": "The 10-K lists the segment as loss-making, yet on this call it was presented as consistently profitable.",
+      "expected_tag": "contradiction"
+    },
+    {
+      "id": "p27",
+      "text": "In February management guided to flat headcount; the prepared remarks now cite a 15% increase as always planned.",
+      "expected_tag": "contradiction"
+    },
+    {
+      "id": "p28",
+      "text": "The CEO said pricing was raised across the board; the CFO said minutes later that list prices were unchanged.",
+      "expected_tag": "contradiction"
+    },
+    {
+      "id": "p29",
+      "text": "Management called the product launch on schedule, while the filing from last week disclosed a two-quarter delay.",
+      "expected_tag": "contradiction"
+    },
+    {
+      "id": "p30",
+      "text": "The buyback was described as completed, although the same call reported only half the authorisation used.",
+      "expected_tag": "contradiction"
+    }
+  ],
+  "guidance": [
+    {
+      "id": "g01",
+      "text": "We are raising our full-year revenue outlook to a range of 4.2 to 4.4 billion, up from 4.0 to 4.2 billion.",
+      "expected_guidance_change": "raise"
+    },
+    {
+      "id": "g02",
+      "text": "Given the strength of the first half, we now expect operating margin at the high end of our prior range, and we are lifting the EPS outlook accordingly.",
+      "expected_guidance_change": "raise"
+    },
+    {
+      "id": "g03",
+      "text": "We are reiterating our full-year guidance provided in January; nothing in the quarter changes that view.",
+      "expected_guidance_change": "hold"
+    },
+    {
+      "id": "g04",
+      "text": "Our outlook for the year is unchanged: revenue growth of 8 to 10 percent and margins roughly flat.",
+      "expected_guidance_change": "hold"
+    },
+    {
+      "id": "g05",
+      "text": "Reflecting the slower ramp, we are reducing our full-year revenue guidance to 3.6 to 3.8 billion from 4.0 to 4.2 billion.",
+      "expected_guidance_change": "lower"
+    },
+    {
+      "id": "g06",
+      "text": "We now expect the year to come in below the range we gave in February, driven by the customer loss discussed earlier.",
+      "expected_guidance_change": "lower"
+    },
+    {
+      "id": "g07",
+      "text": "Thank you for joining. Today we will review the quarter's results and take your questions; we do not provide forward guidance.",
+      "expected_guidance_change": "none"
+    },
+    {
+      "id": "g08",
+      "text": "The quarter's revenue was 1.1 billion and net income was 90 million. Turning to the balance sheet, cash stood at 300 million.",
+      "expected_guidance_change": "none"
+    },
+    {
+      "id": "g09",
+      "text": "We are increasing our outlook for the year on the back of the new contract; we now see revenue of at least 2 billion versus 1.8 billion previously.",
+      "expected_guidance_change": "raise"
+    },
+    {
+      "id": "g10",
+      "text": "Because of the delay, the second-half outlook is lower than we planned: we are cutting the full-year forecast by roughly 10 percent.",
+      "expected_guidance_change": "lower"
+    }
+  ]
+}

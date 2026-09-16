@@ -7,6 +7,7 @@ model on same text and we hit the cache.
 """
 from __future__ import annotations
 
+import json
 import os
 import hashlib
 from pathlib import Path
@@ -14,6 +15,7 @@ from typing import Literal, Protocol
 
 from pydantic import ValidationError
 
+from . import llm
 from .schema import SectionAnalysis, CallAnalysis
 from .transcripts import Transcript
 
@@ -73,6 +75,64 @@ class Analyzer(Protocol):
                         section: Literal["prepared", "qa"],
                         text: str) -> SectionAnalysis: ...
 
+
+# =========================================================================
+# Model-agnostic implementation (default): Claude, OpenAI, Gemini, any OpenAI-compatible endpoint
+# =========================================================================
+
+JSON_INSTRUCTIONS = """
+
+Reply with ONE JSON object and nothing else. It must validate against this JSON Schema:
+{schema}"""
+
+
+class JsonAnalyzer:
+    """Plain HTTP through src/llm.py — no SDK, no tool calling, no vendor JSON mode.
+
+    The schema is stated in the prompt, the reply is parsed and validated with Pydantic, and a reply that does not
+    validate gets exactly one repair round (the validation errors are sent back). A second failure raises, so a
+    model that cannot follow the schema produces an error, never a half-valid row.
+    """
+
+    def __init__(self, cfg: dict, max_repairs: int = 1, opener=None):
+        self.cfg = cfg
+        self.model = cfg["model"]
+        self.max_repairs = max_repairs
+        self.opener = opener
+        schema = json.dumps(SectionAnalysis.model_json_schema(), separators=(",", ":"))
+        self.system = SYSTEM_PROMPT + JSON_INSTRUCTIONS.format(schema=schema)
+        self.prompt_suffix = JSON_INSTRUCTIONS.format(schema=schema)
+        self.calls = 0
+
+    def _ask(self, user: str) -> str:
+        self.calls += 1
+        text, _model = llm.complete(self.cfg, self.system, user, max_tokens=4000, opener=self.opener)
+        return text
+
+    def analyze_section(self, *, ticker, quarter_label, section, text):
+        user = _user_prompt(section, text, ticker, quarter_label)
+        reply = self._ask(user)
+        for attempt in range(self.max_repairs + 1):
+            try:
+                obj = llm.extract_json(reply, kind="object")
+                result = SectionAnalysis.model_validate(obj)
+                if result.section != section:
+                    raise ValueError(f"section is {result.section!r}, expected {section!r}")
+                return result
+            except (ValueError, ValidationError) as e:
+                if attempt == self.max_repairs:
+                    raise RuntimeError(f"{llm.describe(self.cfg)}: reply did not match the schema after "
+                                       f"{self.max_repairs} repair round(s): {str(e)[:400]}") from None
+                reply = self._ask(user + "\n\nYour previous reply did not validate:\n" + str(e)[:1500]
+                                  + "\n\nPrevious reply:\n" + reply[:4000]
+                                  + "\n\nReply again with ONE corrected JSON object only.")
+        raise AssertionError("unreachable")
+
+
+# =========================================================================
+# Native structured output (opt-in: --structured native). Uses a vendor-only
+# feature, so it is never the default path.
+# =========================================================================
 
 # =========================================================================
 # Anthropic implementation
@@ -153,7 +213,8 @@ class CachedAnalyzer:
         self.provider_label = provider_label
         # Hash the system prompt so any prompt iteration invalidates the cache.
         # Otherwise tweaking SYSTEM_PROMPT silently returns stale extractions.
-        self._prompt_fp = hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8]
+        suffix = getattr(inner, "prompt_suffix", "")
+        self._prompt_fp = hashlib.sha256((SYSTEM_PROMPT + suffix).encode()).hexdigest()[:8]
 
     def _cache_key(self, model: str, section: str, text: str) -> Path:
         h = hashlib.sha256()
@@ -180,16 +241,41 @@ class CachedAnalyzer:
 # Factory + full-call convenience
 # =========================================================================
 
+NATIVE_DEFAULT_MODEL = {"anthropic": "claude-haiku-4-5-20251001", "openai": "gpt-4o-mini"}
+
+
 def make_analyzer(provider: str | None = None, model: str | None = None,
-                  cache_dir: str = "./cache") -> CachedAnalyzer:
-    provider = (provider or os.environ.get("LLM_PROVIDER", "anthropic")).lower()
-    if provider == "anthropic":
-        m = model or os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
-        return CachedAnalyzer(AnthropicAnalyzer(model=m), cache_dir, "anthropic")
-    if provider == "openai":
-        m = model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-        return CachedAnalyzer(OpenAIAnalyzer(model=m), cache_dir, "openai")
-    raise ValueError(f"Unknown provider: {provider}")
+                  cache_dir: str = "./cache", structured: str | None = None,
+                  base_url: str | None = None, env: dict | None = None) -> CachedAnalyzer:
+    """Build the analyzer for a provider.
+
+    provider    anthropic (default) | openai | gemini | openai-compatible      — or LLM_PROVIDER
+    model       explicit > LLM_MODEL > ANTHROPIC_MODEL / OPENAI_MODEL > the historical defaults for those two.
+                Gemini and OpenAI-compatible have no default: name a model.
+    structured  json (default, model-agnostic) | native (Anthropic tool use / OpenAI structured outputs only)
+    base_url    LLM_BASE_URL; required for openai-compatible
+    """
+    env = dict(os.environ if env is None else env)
+    provider = (provider or env.get("LLM_PROVIDER") or "anthropic").lower()
+    structured = (structured or env.get("LLM_STRUCTURED") or "json").lower()
+    vendor_model_env = {"anthropic": "ANTHROPIC_MODEL", "openai": "OPENAI_MODEL"}.get(provider)
+    m = model or env.get("LLM_MODEL") or (env.get(vendor_model_env) if vendor_model_env else None) \
+        or NATIVE_DEFAULT_MODEL.get(provider)
+    if structured == "native":
+        if provider == "anthropic":
+            return CachedAnalyzer(AnthropicAnalyzer(model=m), cache_dir, "anthropic")
+        if provider == "openai":
+            return CachedAnalyzer(OpenAIAnalyzer(model=m), cache_dir, "openai")
+        raise ValueError(f"--structured native exists only for anthropic and openai, not {provider}; use json")
+    if structured != "json":
+        raise ValueError(f"structured must be json or native, not {structured!r}")
+    cfg_env = {**env, "LLM_PROVIDER": provider}
+    if m:
+        cfg_env["LLM_MODEL"] = m
+    if base_url:
+        cfg_env["LLM_BASE_URL"] = base_url
+    cfg = llm.config_from_env(cfg_env)
+    return CachedAnalyzer(JsonAnalyzer(cfg), cache_dir, f"{provider}/json")
 
 
 def analyze_call(transcript: Transcript, analyzer: CachedAnalyzer) -> CallAnalysis:

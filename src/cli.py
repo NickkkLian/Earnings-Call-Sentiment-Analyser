@@ -35,8 +35,13 @@ def main(argv=None):
     ap.add_argument("--tickers", required=True, help="Comma-separated, e.g. NVDA,META,TSLA")
     ap.add_argument("--quarters", required=True,
                     help="Comma-separated YYYYQn, e.g. 2024Q3,2024Q4,2025Q1")
-    ap.add_argument("--provider", choices=["anthropic", "openai"], default=None)
-    ap.add_argument("--model", default=None)
+    ap.add_argument("--provider", choices=["anthropic", "openai", "gemini", "openai-compatible"], default=None,
+                    help="default: LLM_PROVIDER or anthropic")
+    ap.add_argument("--model", default=None, help="required for gemini and openai-compatible (or LLM_MODEL)")
+    ap.add_argument("--base-url", default=None, help="endpoint base for openai-compatible, e.g. http://localhost:11434/v1")
+    ap.add_argument("--structured", choices=["json", "native"], default=None,
+                    help="json (default): schema in the prompt, validated locally — works with any model. "
+                         "native: Anthropic tool use / OpenAI structured outputs (those two providers only)")
     ap.add_argument("--cache-dir", default="./cache")
     ap.add_argument("--out", default="signals.csv")
     args = ap.parse_args(argv)
@@ -46,9 +51,11 @@ def main(argv=None):
     pairs = [(t, y, q) for t in tickers for (y, q) in quarters]
 
     print(f"Running pipeline: {len(pairs)} (ticker, quarter) pairs")
-    print(f"Provider: {args.provider or 'env default'} | Model: {args.model or 'env default'}")
+    print(f"Provider: {args.provider or 'env default'} | Model: {args.model or 'env default'} | "
+          f"Structured output: {args.structured or 'env default (json)'}")
 
-    df = run(pairs, provider=args.provider, model=args.model, cache_dir=args.cache_dir)
+    df = run(pairs, provider=args.provider, model=args.model, cache_dir=args.cache_dir,
+             structured=args.structured, base_url=args.base_url)
     if df.empty:
         print("No data — check API keys and inputs.", file=sys.stderr)
         sys.exit(1)
