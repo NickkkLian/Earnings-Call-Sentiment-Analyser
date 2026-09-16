@@ -5,6 +5,8 @@ window.CALLDELTA_DEMO = {
  "NWSC": {
   "company": "Northwind Semiconductor (fictional)",
   "sector": "Semiconductors",
+  "beta": 1,
+  "gamma": 1.5,
   "quarters": [
    {
     "label": "Q2 24",
@@ -15,6 +17,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.84,
     "eps_surprise": 0.061,
     "ret_5d": 0.071,
+    "sector_5d": -0.0585,
     "residual_5d": 0.038
    },
    {
@@ -26,6 +29,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.86,
     "eps_surprise": 0.082,
     "ret_5d": 0.041,
+    "sector_5d": -0.07,
     "residual_5d": -0.012
    },
    {
@@ -37,6 +41,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.79,
     "eps_surprise": 0.045,
     "ret_5d": -0.028,
+    "sector_5d": -0.0445,
     "residual_5d": -0.051
    },
    {
@@ -48,6 +53,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.76,
     "eps_surprise": 0.038,
     "ret_5d": 0.012,
+    "sector_5d": -0.027,
     "residual_5d": -0.018
    },
    {
@@ -59,6 +65,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.78,
     "eps_surprise": 0.052,
     "ret_5d": 0.034,
+    "sector_5d": -0.049,
     "residual_5d": 0.005
    },
    {
@@ -70,6 +77,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.72,
     "eps_surprise": 0.029,
     "ret_5d": -0.041,
+    "sector_5d": -0.0265,
     "residual_5d": -0.058
    },
    {
@@ -81,6 +89,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.68,
     "eps_surprise": 0.018,
     "ret_5d": -0.067,
+    "sector_5d": -0.022,
     "residual_5d": -0.072
    },
    {
@@ -92,6 +101,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.65,
     "eps_surprise": 0.024,
     "ret_5d": -0.052,
+    "sector_5d": -0.027,
     "residual_5d": -0.061
    }
   ],
@@ -148,6 +158,8 @@ window.CALLDELTA_DEMO = {
  "HRBS": {
   "company": "Harbour Social (fictional)",
   "sector": "Communication Services",
+  "beta": 1,
+  "gamma": 1.5,
   "quarters": [
    {
     "label": "Q2 24",
@@ -158,6 +170,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.61,
     "eps_surprise": 0.071,
     "ret_5d": 0.049,
+    "sector_5d": -0.0755,
     "residual_5d": 0.018
    },
    {
@@ -169,6 +182,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.66,
     "eps_surprise": 0.044,
     "ret_5d": 0.022,
+    "sector_5d": -0.045,
     "residual_5d": 0.001
    },
    {
@@ -180,6 +194,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.71,
     "eps_surprise": 0.082,
     "ret_5d": 0.061,
+    "sector_5d": -0.082,
     "residual_5d": 0.02
    },
    {
@@ -191,6 +206,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.74,
     "eps_surprise": 0.058,
     "ret_5d": 0.038,
+    "sector_5d": -0.061,
     "residual_5d": 0.012
    },
    {
@@ -202,6 +218,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.72,
     "eps_surprise": 0.041,
     "ret_5d": 0.029,
+    "sector_5d": -0.0435,
     "residual_5d": 0.011
    },
    {
@@ -213,6 +230,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.68,
     "eps_surprise": 0.025,
     "ret_5d": -0.038,
+    "sector_5d": -0.0235,
     "residual_5d": -0.052
    },
    {
@@ -224,6 +242,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.71,
     "eps_surprise": 0.067,
     "ret_5d": 0.044,
+    "sector_5d": -0.0665,
     "residual_5d": 0.01
    },
    {
@@ -235,6 +254,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.74,
     "eps_surprise": 0.054,
     "ret_5d": 0.057,
+    "sector_5d": -0.052,
     "residual_5d": 0.028
    }
   ],
@@ -291,6 +311,8 @@ window.CALLDELTA_DEMO = {
  "VLTW": {
   "company": "Voltway Motors (fictional)",
   "sector": "Automobiles",
+  "beta": 1,
+  "gamma": 1.5,
   "quarters": [
    {
     "label": "Q2 24",
@@ -301,6 +323,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.55,
     "eps_surprise": -0.041,
     "ret_5d": -0.082,
+    "sector_5d": 0.0245,
     "residual_5d": -0.045
    },
    {
@@ -312,6 +335,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.58,
     "eps_surprise": 0.058,
     "ret_5d": 0.071,
+    "sector_5d": -0.038,
     "residual_5d": 0.022
    },
    {
@@ -323,6 +347,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.62,
     "eps_surprise": -0.022,
     "ret_5d": -0.051,
+    "sector_5d": 0.02,
     "residual_5d": -0.038
    },
    {
@@ -334,6 +359,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.51,
     "eps_surprise": -0.085,
     "ret_5d": -0.118,
+    "sector_5d": 0.0705,
     "residual_5d": -0.061
    },
    {
@@ -345,6 +371,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.54,
     "eps_surprise": -0.038,
     "ret_5d": -0.058,
+    "sector_5d": 0.028,
     "residual_5d": -0.029
    },
    {
@@ -356,6 +383,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.48,
     "eps_surprise": -0.061,
     "ret_5d": -0.092,
+    "sector_5d": 0.0475,
     "residual_5d": -0.048
    },
    {
@@ -367,6 +395,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.58,
     "eps_surprise": 0.012,
     "ret_5d": 0.038,
+    "sector_5d": -0.005,
     "residual_5d": 0.025
    },
    {
@@ -378,6 +407,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.61,
     "eps_surprise": -0.018,
     "ret_5d": -0.041,
+    "sector_5d": 0.011,
     "residual_5d": -0.025
    }
   ],
@@ -434,6 +464,8 @@ window.CALLDELTA_DEMO = {
  "GRFD": {
   "company": "Granite Foundry (fictional)",
   "sector": "Semiconductors",
+  "beta": 1,
+  "gamma": 1.5,
   "quarters": [
    {
     "label": "Q2 24",
@@ -444,6 +476,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.38,
     "eps_surprise": -0.121,
     "ret_5d": -0.265,
+    "sector_5d": 0.0385,
     "residual_5d": -0.122
    },
    {
@@ -455,6 +488,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.34,
     "eps_surprise": -0.082,
     "ret_5d": -0.091,
+    "sector_5d": 0.05,
     "residual_5d": -0.018
    },
    {
@@ -466,6 +500,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.3,
     "eps_surprise": -0.045,
     "ret_5d": -0.071,
+    "sector_5d": 0.0375,
     "residual_5d": -0.041
    },
    {
@@ -477,6 +512,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.25,
     "eps_surprise": -0.158,
     "ret_5d": -0.182,
+    "sector_5d": 0.113,
     "residual_5d": -0.058
    },
    {
@@ -488,6 +524,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.22,
     "eps_surprise": -0.092,
     "ret_5d": -0.108,
+    "sector_5d": 0.055,
     "residual_5d": -0.025
    },
    {
@@ -499,6 +536,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.18,
     "eps_surprise": -0.071,
     "ret_5d": -0.092,
+    "sector_5d": 0.0425,
     "residual_5d": -0.028
    },
    {
@@ -510,6 +548,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.28,
     "eps_surprise": 0.012,
     "ret_5d": 0.034,
+    "sector_5d": -0.006,
     "residual_5d": 0.022
    },
    {
@@ -521,6 +560,7 @@ window.CALLDELTA_DEMO = {
     "guidance": 0.32,
     "eps_surprise": -0.025,
     "ret_5d": -0.018,
+    "sector_5d": 0.0185,
     "residual_5d": 0.001
    }
   ],

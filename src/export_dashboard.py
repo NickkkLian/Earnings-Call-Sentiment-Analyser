@@ -118,7 +118,15 @@ def export(df: pd.DataFrame, out_path: str | Path = "dashboard_data.json") -> di
     JSON.parse rejects). Rather than coercing NaN → 0 (which would silently
     misrepresent missing data as a real signal), we drop the call and warn.
     """
-    from .prices import SECTOR_PROXY
+    import inspect
+    import math
+
+    from .prices import SECTOR_PROXY, compute_reaction
+
+    # The dashboard re-derives each residual from its parts, so the file carries the sector return and the two
+    # parameters the pipeline used (src/pipeline.py calls compute_reaction with its defaults).
+    params = inspect.signature(compute_reaction).parameters
+    beta, gamma = float(params["beta"].default), float(params["gamma"].default)
 
     numeric_cols = ["mgmt_tone", "qa_tone", "hedging_qa", "guidance_confidence_qa",
                     "eps_surprise", "ret_5d", "residual_5d"]
@@ -145,6 +153,8 @@ def export(df: pd.DataFrame, out_path: str | Path = "dashboard_data.json") -> di
                 "guidance": float(r["guidance_confidence_qa"]),
                 "eps_surprise": float(r["eps_surprise"]),
                 "ret_5d": float(r["ret_5d"]),
+                **({"sector_5d": float(r["sector_5d"])}
+                   if "sector_5d" in r and r["sector_5d"] is not None and not math.isnan(float(r["sector_5d"])) else {}),
                 "residual_5d": float(r["residual_5d"]),
             })
 
@@ -167,6 +177,8 @@ def export(df: pd.DataFrame, out_path: str | Path = "dashboard_data.json") -> di
         out[tk] = {
             "company": COMPANY_NAMES.get(tk, tk),
             "sector": SECTOR_NAMES.get(proxy, "Other"),
+            "beta": beta,
+            "gamma": gamma,
             "quarters": quarters,
             "topics": topics,
             "extracts": extracts,

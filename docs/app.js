@@ -16,7 +16,9 @@ function validate(obj) { // same rules the old React dashboard applied, plus num
   for (const t of ts) { const c = obj[t]; if (!c || typeof c !== 'object' || Array.isArray(c)) return `${t}: must be an object`;
     for (const f of REQ_T) if (!(f in c)) return `${t}: missing field "${f}"`;
     if (!Array.isArray(c.quarters) || !c.quarters.length) return `${t}: "quarters" must be a non-empty array`;
-    for (const [i, q] of c.quarters.entries()) { for (const f of REQ_Q) if (!(f in q)) return `${t} quarter ${i}: missing "${f}"`; for (const f of REQ_Q.slice(1)) if (typeof q[f] !== 'number' || !Number.isFinite(q[f])) return `${t} quarter ${i}: "${f}" must be a finite number`; if (q.mgmt < -1 || q.mgmt > 1 || q.qa < -1 || q.qa > 1) return `${t} quarter ${i}: tone must be within -1..1`; }
+    for (const [i, q] of c.quarters.entries()) { for (const f of REQ_Q) if (!(f in q)) return `${t} quarter ${i}: missing "${f}"`; for (const f of REQ_Q.slice(1)) if (typeof q[f] !== 'number' || !Number.isFinite(q[f])) return `${t} quarter ${i}: "${f}" must be a finite number`; if (q.mgmt < -1 || q.mgmt > 1 || q.qa < -1 || q.qa > 1) return `${t} quarter ${i}: tone must be within -1..1`;
+      if ('sector_5d' in q && (typeof q.sector_5d !== 'number' || !Number.isFinite(q.sector_5d))) return `${t} quarter ${i}: "sector_5d" must be a finite number when present`; }
+    for (const f of ['beta', 'gamma']) if (f in c && (typeof c[f] !== 'number' || !Number.isFinite(c[f]))) return `${t}: "${f}" must be a finite number when present`;
     if (!Array.isArray(c.topics)) return `${t}: "topics" must be an array`; if (!Array.isArray(c.extracts)) return `${t}: "extracts" must be an array`; }
   return null;
 }
@@ -52,6 +54,21 @@ function scatter(quarters) {
 }
 function pearson(xs, ys) { const n = xs.length; if (n < 3) return null; const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null; }
 
+// The residual is the file's number; the page re-derives it from the file's own parts so a reader can check it:
+// residual = 5-day return − β × sector 5-day return − γ × EPS surprise (src/prices.py residual_return). Values are fractions;
+// a difference within 0.05 percentage points counts as reconciled. Without sector_5d, β and γ the residual is not checkable.
+function recSummary(data, tickers, calls) {
+  const recs = tickers.flatMap(t => data[t].quarters.map(q => reconcile(data[t], q))), checkable = recs.filter(r => r.checkable), passing = checkable.filter(r => r.ok).length;
+  const text = checkable.length === 0 ? `0/${calls} checkable` : checkable.length === calls ? `${passing}/${calls} reconcile` : `${passing}/${checkable.length} reconcile · ${calls - checkable.length} not checkable`;
+  return h('span', { class: passing < checkable.length ? 'bad' : '' }, text);
+}
+function reconcile(c, q) {
+  const num = v => typeof v === 'number' && Number.isFinite(v);
+  if (!num(q.sector_5d) || !num(c.beta) || !num(c.gamma)) return { checkable: false };
+  const sectorPart = c.beta * q.sector_5d, surprisePart = c.gamma * q.eps_surprise, off = (q.ret_5d - sectorPart - surprisePart) - q.residual_5d;
+  return { checkable: true, ok: Math.abs(off) <= 0.0005, off, sectorPart, surprisePart, beta: c.beta, gamma: c.gamma };
+}
+
 /* ---------- render ---------- */
 function render() {
   const main = $('#main'); main.innerHTML = '';
@@ -60,10 +77,14 @@ function render() {
   const calls = tickers.reduce((a, t) => a + data[t].quarters.length, 0);
   $('#pill-long').textContent = S.custom ? ' · your file · loaded in this tab' : ' · synthetic data · fictional companies';
   $('#reset').hidden = !S.custom;
-  main.append(h('div', { class: 'ticker-tabs', role: 'tablist' }, tickers.map(t => h('button', { role: 'tab', 'aria-selected': t === S.ticker ? 'true' : 'false', onclick: () => { S.ticker = t; location.hash = '#' + t; render(); } }, t)), h('span', { class: 'meta' }, `${qs.length} quarters · ${tickers.length} tickers · ${calls} calls`)));
-  const gap = cur.mgmt - cur.qa, gapPrev = prev.mgmt - prev.qa;
+  main.append(h('div', { class: 'ticker-tabs', role: 'tablist' }, tickers.map(t => h('button', { role: 'tab', 'aria-selected': t === S.ticker ? 'true' : 'false', onclick: () => { S.ticker = t; location.hash = '#' + t; render(); } }, t)), h('span', { class: 'meta' }, `${qs.length} quarters · ${tickers.length} tickers · ${calls} calls · `, recSummary(data, tickers, calls))));
+  const gap = cur.mgmt - cur.qa, gapPrev = prev.mgmt - prev.qa, rec = reconcile(c, cur);
   main.append(h('div', { class: 'company' }, h('div', {}, h('h1', {}, c.company), h('div', { class: 'sub' }, `${S.ticker} · ${c.sector} · latest call ${cur.date || cur.label}`)),
-    h('div', { class: 'kpis' }, [['EPS surprise', cur.eps_surprise], ['5-day return', cur.ret_5d], ['5-day residual *', cur.residual_5d]].map(([l, v]) => h('div', { class: 'kpi' }, h('div', { class: 'lbl' }, l), h('div', { class: 'val ' + cls(v * 10) }, pct(v)))))));
+    h('div', { class: 'kpis' }, [['EPS surprise', cur.eps_surprise], ['5-day return', cur.ret_5d], ['5-day residual *', cur.residual_5d]].map(([l, v]) => h('div', { class: 'kpi' }, h('div', { class: 'lbl' }, l), h('div', { class: 'val ' + cls(v * 10) }, pct(v))))),
+    rec.checkable
+      ? h('div', { class: 'recon', role: 'note' }, `5-day return ${pct(cur.ret_5d)} = sector ${pct(rec.sectorPart)} (β ${rec.beta.toFixed(1)}) + surprise ${pct(rec.surprisePart)} (γ ${rec.gamma.toFixed(1)} × ${pct(cur.eps_surprise)}) + residual ${pct(cur.residual_5d)} `,
+          rec.ok ? h('span', { class: 'ok' }, '✓ reconciles') : h('span', { class: 'bad' }, `✗ off by ${(Math.abs(rec.off) * 100).toFixed(2)} pp`))
+      : h('div', { class: 'recon unknown', role: 'note' }, 'sector return not in this file — residual not checkable')));
   const delta = (v, invert) => h('small', { class: (invert ? -v : v) > 0 ? 'pos' : (invert ? -v : v) < 0 ? 'neg' : 'neu' }, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);
   main.append(h('div', { class: 'strip', role: 'group', 'aria-label': 'Current quarter signals' },
     h('div', {}, h('div', { class: 'lbl' }, 'Management tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.mgmt) }, tone(cur.mgmt)), delta(cur.mgmt - prev.mgmt))),

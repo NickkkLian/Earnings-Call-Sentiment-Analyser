@@ -50,3 +50,18 @@ def test_export_drops_nan_rows_instead_of_zeroing_them(tmp_path, capsys):
     assert "Dropped 1 rows" in capsys.readouterr().out
     assert json.loads((tmp_path / "d.json").read_text())["NWSC"]["extracts"][0]["tag"] == "evasion"
     assert out["NWSC"]["sector"] == "Broad Market", "unknown tickers fall back to the SPY proxy"
+
+
+def test_export_carries_the_parts_of_the_residual(tmp_path):
+    """sector_5d, beta and gamma are exported so the dashboard can re-derive residual_5d; a file without sector_5d still exports"""
+    from src.prices import residual_return
+    r1 = _row("NWSC", "Q1 2025", "2025-05-28", ret_5d=0.034, eps_surprise=0.052, sector_5d=-0.049)
+    r1["residual_5d"] = residual_return(r1["ret_5d"], r1["sector_5d"], r1["eps_surprise"])
+    out = export(pd.DataFrame([r1]), tmp_path / "d.json")
+    c = out["NWSC"]
+    q = c["quarters"][0]
+    assert (c["beta"], c["gamma"]) == (1.0, 1.5)
+    assert q["sector_5d"] == -0.049
+    assert abs(q["ret_5d"] - c["beta"] * q["sector_5d"] - c["gamma"] * q["eps_surprise"] - q["residual_5d"]) < 1e-12
+    legacy = export(pd.DataFrame([_row("HRBS", "Q1 2025", "2025-05-28")]), tmp_path / "e.json")
+    assert "sector_5d" not in legacy["HRBS"]["quarters"][0], "no sector_5d column → field omitted, the page shows 'not checkable'"
