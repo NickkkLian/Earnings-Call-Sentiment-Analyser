@@ -17,7 +17,9 @@ from .analyzer import make_analyzer, analyze_call
 def run(tickers_quarters: Iterable[tuple[str, int, int]],
         provider: str | None = None,
         model: str | None = None,
-        cache_dir: str = "./cache") -> pd.DataFrame:
+        cache_dir: str = "./cache",
+        structured: str | None = None,
+        base_url: str | None = None) -> pd.DataFrame:
     """
     tickers_quarters: iterable of (ticker, year, quarter), e.g.
         [("NVDA", 2025, 2), ("NVDA", 2025, 3), ("META", 2025, 2), ...]
@@ -31,7 +33,8 @@ def run(tickers_quarters: Iterable[tuple[str, int, int]],
       eps_actual, eps_estimate, eps_surprise,
       ret_1d, ret_5d, ret_30d, sector_5d, residual_5d
     """
-    analyzer = make_analyzer(provider=provider, model=model, cache_dir=cache_dir)
+    analyzer = make_analyzer(provider=provider, model=model, cache_dir=cache_dir,
+                             structured=structured, base_url=base_url)
     rows = []
 
     for ticker, year, quarter in tickers_quarters:

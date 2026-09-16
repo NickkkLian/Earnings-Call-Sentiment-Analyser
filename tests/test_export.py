@@ -1,0 +1,52 @@
+"""Dashboard export: topic merging across sections, label shortening, NaN rows dropped rather than zeroed."""
+import json
+
+import pandas as pd
+
+from src.export_dashboard import _combine_topics, _short_label, _coerce_listcell, export
+
+
+def test_short_label():
+    assert _short_label("Q2 2025") == "Q2 25"
+    assert _short_label("FY 2025") == "FY 2025"
+
+
+def test_combine_topics_matches_by_substring_and_surfaces_qa_only_topics():
+    prepared = [{"name": "Data Center", "weight": 0.5, "tone": 0.8}, {"name": "Margins", "weight": 0.3, "tone": 0.4}]
+    qa = [{"name": "data center demand", "weight": 0.4, "tone": 0.2}, {"name": "China", "weight": 0.3, "tone": -0.5}]
+    out = _combine_topics(prepared, qa)
+    by = {t["name"]: t for t in out}
+    assert by["Data Center"]["qa"] == 0.2 and by["Data Center"]["weight"] == 0.45
+    assert by["Margins"]["qa"] == 0.0, "unmatched prepared topic keeps a neutral Q&A tone"
+    assert by["China"]["mgmt"] == 0.0 and by["China"]["qa"] == -0.5, "analysts pushed on something management did not raise"
+    assert [t["weight"] for t in out] == sorted([t["weight"] for t in out], reverse=True)
+
+
+def test_combine_topics_caps_at_six():
+    prepared = [{"name": f"T{i}", "weight": 0.1, "tone": 0.0} for i in range(8)]
+    assert len(_combine_topics(prepared, [])) == 6
+
+
+def test_coerce_listcell_accepts_json_python_repr_and_nan():
+    assert _coerce_listcell('[{"a": 1}]') == [{"a": 1}]
+    assert _coerce_listcell("[{'a': 1}]") == [{"a": 1}]
+    assert _coerce_listcell(float("nan")) == []
+    assert _coerce_listcell([1]) == [1]
+
+
+def _row(ticker, label, date, **over):
+    base = dict(ticker=ticker, quarter_label=label, call_date=date, mgmt_tone=0.5, qa_tone=0.2, hedging_qa=0.3,
+                guidance_confidence_qa=0.7, eps_surprise=0.01, ret_5d=0.02, residual_5d=0.005,
+                topics_prepared=json.dumps([{"name": "Margins", "weight": 1.0, "tone": 0.5}]), topics_qa="[]",
+                extracts_prepared="[]", extracts_qa=json.dumps([{"tag": "evasion", "speaker": "CEO", "text": "x"}]))
+    base.update(over)
+    return base
+
+
+def test_export_drops_nan_rows_instead_of_zeroing_them(tmp_path, capsys):
+    df = pd.DataFrame([_row("NWSC", "Q1 2025", "2025-05-28"), _row("NWSC", "Q2 2025", "2025-08-27", residual_5d=float("nan"))])
+    out = export(df, tmp_path / "d.json")
+    assert [q["label"] for q in out["NWSC"]["quarters"]] == ["Q1 25"]
+    assert "Dropped 1 rows" in capsys.readouterr().out
+    assert json.loads((tmp_path / "d.json").read_text())["NWSC"]["extracts"][0]["tag"] == "evasion"
+    assert out["NWSC"]["sector"] == "Broad Market", "unknown tickers fall back to the SPY proxy"

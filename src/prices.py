@@ -14,7 +14,6 @@ from datetime import timedelta
 
 import pandas as pd
 import requests
-import yfinance as yf
 
 
 DEFAULT_PROXY = "SPY"
@@ -155,6 +154,16 @@ def _window_return(prices: pd.Series, anchor: pd.Timestamp, days: int) -> float:
     return float(p1 / p0 - 1.0)
 
 
+def residual_return(return_5d: float, sector_return_5d: float, eps_surprise: float,
+                    beta: float = 1.0, gamma: float = 1.5) -> float:
+    """The one line the whole project hangs on: post-call return net of sector beta and EPS surprise.
+
+    residual = r5 - beta * sector5 - gamma * surprise. Kept as a pure function so it can be tested
+    without network access; `compute_reaction` is the I/O wrapper around it.
+    """
+    return float(return_5d - beta * sector_return_5d - gamma * eps_surprise)
+
+
 def compute_reaction(ticker: str, call_date: str,
                      beta: float = 1.0, gamma: float = 1.5) -> PriceReaction:
     """Compute the price reaction for a given call.
@@ -163,6 +172,8 @@ def compute_reaction(ticker: str, call_date: str,
     (a 1% beat moves the stock ~1.5% on average for large-cap tech).
     Replace with a fitted coefficient when you have enough samples.
     """
+    import yfinance as yf  # imported here so the pure helpers above stay importable without it
+
     anchor = pd.to_datetime(call_date)
     start = (anchor - timedelta(days=10)).strftime("%Y-%m-%d")
     end = (anchor + timedelta(days=45)).strftime("%Y-%m-%d")
@@ -178,7 +189,7 @@ def compute_reaction(ticker: str, call_date: str,
 
     eps_actual, eps_est, surprise = fetch_eps_surprise(ticker, call_date)
 
-    residual = r5 - beta * sector5 - gamma * surprise
+    residual = residual_return(r5, sector5, surprise, beta, gamma)
 
     return PriceReaction(
         ticker=ticker.upper(),
