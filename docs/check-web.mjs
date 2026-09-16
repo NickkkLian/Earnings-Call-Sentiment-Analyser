@@ -1,7 +1,7 @@
 // check-web.mjs — the static dashboard's own checks: no external scripts, demo data passes the loader's validation,
 // a mutated file is rejected (negative control), and the Pearson helper matches a hand-computed value.
-import fs from 'node:fs'; import path from 'node:path'; import vm from 'node:vm';
-const HERE = path.dirname(new URL(import.meta.url).pathname);
+import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url'; import vm from 'node:vm';
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 const html = fs.readFileSync(path.join(HERE, 'index.html'), 'utf8');
 const results = []; let failed = 0;
 const check = (name, ok, detail = '') => { results.push([ok ? 'PASS' : 'FAIL', name, detail]); if (!ok) failed++; };
