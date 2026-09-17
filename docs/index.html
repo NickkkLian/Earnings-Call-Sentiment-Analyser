@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script>/* appearance boot — runs before any stylesheet so the stored palette and light/dark apply on the first paint */(function(){try{var d=document.documentElement,L=window.localStorage,t=L.getItem('nl-theme'),s=L.getItem('nl-scheme');if(s===null){var o=L.getItem('theme')||L.getItem('qm-theme');if(o==='dark'||o==='light')s=o;}if(t==='paper'||t==='ink')d.setAttribute('data-theme',t);if(s==='dark'||s==='light')d.setAttribute('data-scheme',s);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="CallDelta: management tone vs. analyst pushback on earnings calls, scored with structured LLM output and tracked against residual returns. Synthetic demo data; load your own pipeline JSON.">
+<meta name="description" content="Call tone vs. analyst pushback — not a trading signal. CallDelta scores earnings calls with structured LLM output and tracks the gap against residual returns. Synthetic demo data; load your own pipeline JSON.">
 <meta name="theme-color" content="#faece9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#12110c" media="(prefers-color-scheme: dark)">
 <title>CallDelta</title>
@@ -21,7 +21,7 @@
 <header class="topbar">
   <a class="brand" href="#" aria-label="CallDelta home">
     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="19" height="19" rx="5" stroke="currentColor" stroke-width="2"/><rect x="14" y="6" width="4" height="4" rx="1" fill="var(--point)"/><path d="M6 17l3.5-3.5 3 2.5 5.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <b>CallDelta</b><span>Management tone vs. analyst pushback on earnings calls — scored with structured LLM output, tracked against residual returns.</span>
+    <b>CallDelta</b><span>Call tone vs. analyst pushback — not a trading signal.</span>
   </a>
   <span class="pill" id="pill" title="Four fictional companies with illustrative numbers. Load a JSON file from the pipeline to replace them.">Demo<span class="long" id="pill-long"> · synthetic data · fictional companies</span></span>
   <span class="spacer"></span>
