@@ -32,7 +32,8 @@ function validate(obj) { // same rules the old React dashboard applied, plus num
       for (const f of ['tag', 'speaker', 'text']) { if (!(f in e)) return `${at}: missing "${f}"`; if (typeof e[f] !== 'string') return `${at}: "${f}" must be text`; } } }
   return null;
 }
-function toast(msg, kind) { const box = $('#toasts'); const el = h('div', { class: 'toast enter', role: kind === 'error' ? 'alert' : 'status' }, h('span', {}, msg), h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': 'Dismiss', onclick: () => el.remove() }, '×')); box.append(el); requestAnimationFrame(() => el.classList.remove('enter')); setTimeout(() => el.remove(), kind === 'error' ? 8000 : 4000); }
+// an error toast that carries its fix as a button (`action`: { label, run }) stays until it is dismissed (ruling 2026-09-16 20:11 Q8, form B)
+function toast(msg, kind, action) { const box = $('#toasts'); const el = h('div', { class: 'toast enter', role: kind === 'error' ? 'alert' : 'status' }, h('span', {}, msg), action ? h('button', { class: 'btn btn-sm', onclick: () => { if (action.focus) action.focus().focus(); el.remove(); action.run(); } }, action.label) : null, h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': 'Dismiss', onclick: () => el.remove() }, '×')); box.append(el); requestAnimationFrame(() => el.classList.remove('enter')); if (!action) setTimeout(() => el.remove(), kind === 'error' ? 8000 : 4000); }
 
 const S = { data: DEMO, custom: false, ticker: Object.keys(DEMO)[0], view: {} };
 const esc = s => String(s ?? '');
@@ -173,13 +174,17 @@ function renderPage() {
 // data stays and the message names what is wrong (round-1 audit, 2026-09-16: a topic with only a name passed, replaced the data,
 // and left a half-drawn page behind "Parse error: Cannot read properties of undefined").
 function loadFile(file) { if (!file) return; const rd = new FileReader(); rd.onload = ev => {
-  let parsed; try { parsed = JSON.parse(ev.target.result); } catch (e) { return toast(`${file.name} is not valid JSON (${e.message}) — kept the current data`, 'error'); }
-  const err = validate(parsed); if (err) return toast(`${file.name} does not have the dashboard's shape: ${err} — kept the current data`, 'error');
+  // each message says what is wrong and where the right shape is, keeps the current data, and offers to choose another file;
+  // a script's own exception text is never shown (ruling 2026-09-16 20:11 Q8)
+  // the message goes away with the button, so focus moves to Load JSON first rather than falling to <body>
+  const again = { label: 'Choose another file', run: () => $('#file').click(), focus: () => $('#load') }, shape = 'Sample JSON in the top bar shows the shape the dashboard reads. Nothing was changed.';
+  let parsed; try { parsed = JSON.parse(ev.target.result); } catch (e) { return toast(`${file.name} is not valid JSON. ${shape}`, 'error', again); }
+  const err = validate(parsed); if (err) return toast(`${file.name} does not have the dashboard's shape: ${err}. ${shape}`, 'error', again);
   const before = { data: S.data, custom: S.custom, ticker: S.ticker };
   Object.assign(S, { data: parsed, custom: true, ticker: Object.keys(parsed)[0] });
-  try { render(); } catch (e) { Object.assign(S, before); render(); return toast(`${file.name} passed the checks but could not be drawn (${e.message}) — kept the current data`, 'error'); }
+  try { render(); } catch (e) { Object.assign(S, before); render(); console.error(e); return toast(`${file.name} passed the checks but could not be drawn. ${shape}`, 'error', again); }
   toast(`Loaded ${Object.keys(parsed).length} tickers, ${Object.values(parsed).reduce((a, c) => a + c.quarters.length, 0)} calls from ${file.name}`); };
-  rd.onerror = () => toast(`Could not read ${file.name} — kept the current data`, 'error'); rd.readAsText(file); }
+  rd.onerror = () => toast(`Could not read ${file.name}. Nothing was changed.`, 'error', { label: 'Choose another file', run: () => $('#file').click(), focus: () => $('#load') }); rd.readAsText(file); }
 function init() {
   const root = document.documentElement, tb = $('#theme');
   Appearance.bindToggle(tb);   // ◐ switches light/dark only (appearance.js)
