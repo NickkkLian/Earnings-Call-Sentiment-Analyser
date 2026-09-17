@@ -1,6 +1,6 @@
 # CallDelta
 
-**Management tone vs. analyst pushback on earnings calls — scored with structured LLM output and tracked against residual returns.**
+**Call tone vs. analyst pushback — not a trading signal.**
 
 An earnings call has two halves: what management chose to say, and what analysts made them answer. CallDelta scores each half separately with a fixed extraction schema, tracks the *gap* between them across quarters, and correlates it with the post-call return **after** removing the sector move and the EPS surprise — the part of the price reaction that the words, not the numbers, might explain.
 
