@@ -36,6 +36,7 @@ function toast(msg, kind) { const box = $('#toasts'); const el = h('div', { clas
 
 const S = { data: DEMO, custom: false, ticker: Object.keys(DEMO)[0], view: {} };
 const esc = s => String(s ?? '');
+const fromHash = () => { try { return decodeURIComponent(location.hash.slice(1)); } catch (e) { return location.hash.slice(1); } };   // a stray % must not stop the page
 
 /* ---------- charts ---------- */
 function trajectory(quarters) {
@@ -114,6 +115,16 @@ function restoreFocus(find) {
   if (el) { el.focus(); if (find.caret && el.setSelectionRange) try { el.setSelectionRange(find.caret[0], find.caret[1]); } catch (e) { /* not a text field */ } }
 }
 function render() { const find = focusKey(document.activeElement); renderPage(); restoreFocus(find); }
+// Arrow keys, Home and End move between the company tabs and open the one they land on (the WAI-ARIA tabs pattern).
+function roving(e) {
+  const opt = e.target.closest && e.target.closest('[role="radio"], [role="tab"]'), group = opt && opt.closest('[role="radiogroup"], [role="tablist"]');
+  if (!group || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return false;
+  const all = [...group.querySelectorAll('[role="radio"], [role="tab"]')].filter(b => !b.disabled), i = all.indexOf(opt);
+  const move = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  const next = move ? all[(i + move + all.length) % all.length] : e.key === 'Home' ? all[0] : e.key === 'End' ? all[all.length - 1] : null;
+  if (!next) return false;
+  e.preventDefault(); next.focus(); if (next !== opt) next.click(); return true;
+}
 function renderPage() {
   const main = $('#main'); main.innerHTML = '';
   const data = S.data, tickers = Object.keys(data); if (!data[S.ticker]) S.ticker = tickers[0];
@@ -121,27 +132,30 @@ function renderPage() {
   const calls = tickers.reduce((a, t) => a + data[t].quarters.length, 0);
   $('#pill-long').textContent = S.custom ? ' · your file · loaded in this tab' : ' · synthetic data · fictional companies';
   $('#reset').hidden = !S.custom;
-  main.append(h('div', { class: 'ticker-tabs', role: 'tablist' }, tickers.map(t => h('button', { role: 'tab', 'aria-selected': t === S.ticker ? 'true' : 'false', onclick: () => { S.ticker = t; location.hash = '#' + t; render(); } }, t)), h('span', { class: 'meta' }, `${qs.length} quarters · ${tickers.length} tickers · ${calls} calls · `, recSummary(data, tickers, calls))));
+  // the address always names the company on screen, so a reload or a shared link opens the same one
+  if (fromHash() !== S.ticker) history.replaceState(null, '', '#' + encodeURIComponent(S.ticker));
+  main.append(h('div', { class: 'ticker-tabs', role: 'tablist', 'aria-label': 'Companies' }, tickers.map(t => h('button', { role: 'tab', id: 'tab-' + t, 'aria-controls': 'ticker-panel', 'aria-selected': t === S.ticker ? 'true' : 'false', onclick: () => { if (t === S.ticker) return; S.ticker = t; history.pushState(null, '', '#' + encodeURIComponent(t)); render(); } }, t)), h('span', { class: 'meta' }, `${qs.length} quarters · ${tickers.length} tickers · ${calls} calls · `, recSummary(data, tickers, calls))));
+  const panel = h('div', { id: 'ticker-panel', role: 'tabpanel', 'aria-labelledby': 'tab-' + S.ticker }); main.append(panel);
   const gap = cur.mgmt - cur.qa, gapPrev = prev.mgmt - prev.qa, rec = reconcile(c, cur);
-  main.append(h('div', { class: 'company' }, h('div', {}, h('h1', {}, c.company), h('div', { class: 'sub' }, `${S.ticker} · ${c.sector} · latest call ${cur.date || cur.label}`)),
+  panel.append(h('div', { class: 'company' }, h('div', {}, h('h1', {}, c.company), h('div', { class: 'sub' }, `${S.ticker} · ${c.sector} · latest call ${cur.date || cur.label}`)),
     h('div', { class: 'kpis' }, [['EPS surprise', cur.eps_surprise], ['5-day return', cur.ret_5d], ['5-day residual *', cur.residual_5d]].map(([l, v]) => h('div', { class: 'kpi' }, h('div', { class: 'lbl' }, l), h('div', { class: 'val ' + cls(v * 10) }, pct(v))))),
     rec.checkable
       ? h('div', { class: 'recon', role: 'note' }, `5-day return ${pct(cur.ret_5d)} = sector ${pct(rec.sectorPart)} (β ${rec.beta.toFixed(1)}) + surprise ${pct(rec.surprisePart)} (γ ${rec.gamma.toFixed(1)} × ${pct(cur.eps_surprise)}) + residual ${pct(cur.residual_5d)} `,
           rec.ok ? h('span', { class: 'ok' }, '✓ reconciles') : h('span', { class: 'bad' }, `✗ off by ${(Math.abs(rec.off) * 100).toFixed(2)} pp`))
       : h('div', { class: 'recon unknown', role: 'note' }, `${rec.missing.join(' and ')} not in this file — residual not checkable`)));
   const delta = (v, invert) => h('small', { class: (invert ? -v : v) > 0 ? 'pos' : (invert ? -v : v) < 0 ? 'neg' : 'neu' }, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);
-  main.append(h('div', { class: 'strip', role: 'group', 'aria-label': 'Current quarter signals' },
+  panel.append(h('div', { class: 'strip', role: 'group', 'aria-label': 'Current quarter signals' },
     h('div', {}, h('div', { class: 'lbl' }, 'Management tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.mgmt) }, tone(cur.mgmt)), delta(cur.mgmt - prev.mgmt))),
     h('div', {}, h('div', { class: 'lbl' }, 'Analyst Q&A tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.qa) }, tone(cur.qa)), delta(cur.qa - prev.qa))),
     h('div', {}, h('div', { class: 'lbl' }, h('span', {}, 'Sentiment gap'), h('span', { class: 'tag ' + (gap > 0.2 ? 'tag-warning' : 'tag-neutral') }, gap > 0.2 ? 'wide' : 'normal')), h('div', { class: 'val' }, h('b', {}, tone(gap)), delta(gap - gapPrev))),
     h('div', {}, h('div', { class: 'lbl' }, 'Hedging density'), h('div', { class: 'val' }, h('b', { class: cur.hedging > 0.35 ? 'neg' : '' }, cur.hedging.toFixed(2)), delta(cur.hedging - prev.hedging, true))),
     h('div', {}, h('div', { class: 'lbl' }, 'Guidance confidence'), h('div', { class: 'val' }, h('b', { class: cur.guidance > 0.7 ? 'pos' : cur.guidance < 0.4 ? 'neg' : '' }, cur.guidance.toFixed(2)), delta(cur.guidance - prev.guidance)))));
   const maxW = Math.max(0.001, ...c.topics.map(t => t.weight));
-  main.append(h('div', { class: 'panels' },
+  panel.append(h('div', { class: 'panels' },
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Multi-quarter sentiment trajectory'), h('p', {}, `Management prepared remarks vs analyst Q&A · ${qs.length} quarters · shaded band = framing gap`)), trajectory(qs), h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'background:var(--viz-1)' }), 'Management'), h('span', {}, h('i', { style: 'background:var(--viz-2)' }), 'Analyst Q&A'), h('span', {}, h('i', { style: 'background:var(--viz-1);opacity:.25;height:8px' }), 'Framing gap'))),
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Topic emphasis'), h('p', {}, `${cur.label} · themes extracted by the model; bar = share of airtime`)), h('div', { class: 'topics' }, c.topics.length ? c.topics.map(t => { const g = t.mgmt - t.qa; return h('div', { class: 'topic' }, h('div', { class: 'head' }, h('b', {}, t.name), h('span', { class: 'mono muted' }, `${(t.weight * 100).toFixed(0)}% of call`)), h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, t.weight / maxW * 100)}%` })), h('div', { class: 'tones' }, h('span', { class: cls(t.mgmt) }, 'M ' + tone(t.mgmt)), h('span', { class: cls(t.qa) }, 'Q ' + tone(t.qa)), Math.abs(g) > 0.25 ? h('span', { class: 'tag tag-warning' }, 'gap ' + tone(g)) : null)); }) : h('p', { class: 'muted' }, 'No topics in this file.')), h('p', { class: 'hint', style: 'margin-top:12px' }, 'Wide gaps show where analysts push back against management framing.'))));
   const r = pearson(qs.map(q => q.mgmt - q.qa), qs.map(q => q.residual_5d));
-  main.append(h('div', { class: 'panels-2' },
+  panel.append(h('div', { class: 'panels-2' },
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Sentiment gap vs residual return'), h('p', {}, `5-day post-call return after controlling for sector and EPS surprise · one point per call · Pearson r = ${r === null ? 'n/a' : r.toFixed(2)} (n = ${qs.length}, illustrative, not a signal)`)), scatter(qs), h('p', { class: 'hint', style: 'margin-top:8px' }, 'Quadrant of interest: wide gap and negative residual — management rosy, market unconvinced.')),
     h('div', { class: 'card' }, h('h2', {}, 'Notable extracts'), h('p', { class: 'hint', style: 'margin-bottom:12px' }, `${cur.label} · passages the model tagged`), c.extracts.length ? c.extracts.map(e => h('div', { class: 'extract' }, h('div', {}, h('span', { class: 'tag ' + ({ confident: 'tag-success', hedging: 'tag-warning', evasion: 'tag-danger', admission: 'tag-info', contradiction: 'tag-danger' }[e.tag] || 'tag-neutral') }, e.tag)), h('div', {}, h('q', {}, esc(e.text)), h('div', { class: 'who' }, '— ' + esc(e.speaker))))) : h('p', { class: 'muted' }, 'No extracts in this file.'))));
   main.append(h('div', { class: 'card' }, h('h2', {}, 'Methodology'), h('div', { class: 'method' }, h('div', {}, h('p', {}, 'Each transcript is split into prepared remarks and analyst Q&A and scored separately by the model against a fixed JSON schema (tool use on Anthropic, JSON-schema response format on OpenAI). Tone, hedging density, guidance confidence, topics and tagged passages come back as structured fields, so quarters are comparable.'), h('p', {}, '* Residual = 5-day return − β·sector-ETF return − γ·EPS surprise (β = 1, γ = 1.5 in the pipeline). What is left is what the tone of the call added beyond what was reported.'), h('p', {}, 'The demo numbers are illustrative series for fictional companies. Load a JSON file produced by ', h('code', {}, 'python -m src.export_dashboard signals.csv'), ' to see real pipeline output; the loader validates the shape and rejects malformed files with a specific message.')),
@@ -174,8 +188,10 @@ function init() {
   $('#sample').addEventListener('click', () => { const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(DEMO, null, 2)], { type: 'application/json' })), download: 'dashboard_sample.json' }); document.body.append(a); a.click(); a.remove(); });
   $('#reset').addEventListener('click', () => { S.data = DEMO; S.custom = false; S.ticker = Object.keys(DEMO)[0]; render(); toast('Reset to demo data'); });
   document.addEventListener('dragover', e => e.preventDefault()); document.addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
-  const t = location.hash.slice(1); if (t && DEMO[t]) S.ticker = t;
-  window.addEventListener('hashchange', () => { const t = location.hash.slice(1); if (t && S.data[t]) { S.ticker = t; render(); } });
+  const t = fromHash(); if (t && DEMO[t]) S.ticker = t;
+  // any other address (the home link's "#", an old ticker) shows the first company, and render() writes its ticker back
+  window.addEventListener('hashchange', () => { const t = fromHash(); S.ticker = S.data[t] ? t : Object.keys(S.data)[0]; render(); });
+  document.addEventListener('keydown', roving);
   render();
 }
 window.CallDelta = { state: S, validate, pearson };
