@@ -74,7 +74,8 @@ function recSummary(data, tickers, calls) {
 }
 function reconcile(c, q) {
   const num = v => typeof v === 'number' && Number.isFinite(v);
-  if (!num(q.sector_5d) || !num(c.beta) || !num(c.gamma)) return { checkable: false };
+  const missing = [!num(q.sector_5d) && 'sector return', !num(c.beta) && 'β', !num(c.gamma) && 'γ'].filter(Boolean);
+  if (missing.length) return { checkable: false, missing };
   const sectorPart = c.beta * q.sector_5d, surprisePart = c.gamma * q.eps_surprise, off = (q.ret_5d - sectorPart - surprisePart) - q.residual_5d;
   return { checkable: true, ok: Math.abs(off) <= 0.0005, off, sectorPart, surprisePart, beta: c.beta, gamma: c.gamma };
 }
@@ -127,7 +128,7 @@ function renderPage() {
     rec.checkable
       ? h('div', { class: 'recon', role: 'note' }, `5-day return ${pct(cur.ret_5d)} = sector ${pct(rec.sectorPart)} (β ${rec.beta.toFixed(1)}) + surprise ${pct(rec.surprisePart)} (γ ${rec.gamma.toFixed(1)} × ${pct(cur.eps_surprise)}) + residual ${pct(cur.residual_5d)} `,
           rec.ok ? h('span', { class: 'ok' }, '✓ reconciles') : h('span', { class: 'bad' }, `✗ off by ${(Math.abs(rec.off) * 100).toFixed(2)} pp`))
-      : h('div', { class: 'recon unknown', role: 'note' }, 'sector return not in this file — residual not checkable')));
+      : h('div', { class: 'recon unknown', role: 'note' }, `${rec.missing.join(' and ')} not in this file — residual not checkable`)));
   const delta = (v, invert) => h('small', { class: (invert ? -v : v) > 0 ? 'pos' : (invert ? -v : v) < 0 ? 'neg' : 'neu' }, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);
   main.append(h('div', { class: 'strip', role: 'group', 'aria-label': 'Current quarter signals' },
     h('div', {}, h('div', { class: 'lbl' }, 'Management tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.mgmt) }, tone(cur.mgmt)), delta(cur.mgmt - prev.mgmt))),

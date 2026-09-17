@@ -36,6 +36,9 @@ const bad4 = JSON.parse(JSON.stringify(demo)); bad4.NWSC.topics = [{ name: 'Pric
 check('negative control: a topic with only a name is rejected with the field it lacks', /NWSC topic 0 \(Pricing\): missing "weight"/.test(String(ctx.__v(bad4))), String(ctx.__v(bad4)));
 const bad5 = JSON.parse(JSON.stringify(demo)); delete bad5.GRFD.extracts[0].text;
 check('negative control: an extract without its text is rejected', /GRFD extract 0: missing "text"/.test(String(ctx.__v(bad5))), String(ctx.__v(bad5)));
+const noGamma = JSON.parse(JSON.stringify(demo)); delete noGamma.GRFD.gamma;
+const rNoGamma = ctx.__r(noGamma.GRFD, noGamma.GRFD.quarters[7]);
+check('a company without γ is "not checkable" and says γ is what is missing', rNoGamma.checkable === false && rNoGamma.missing.join() === 'γ', JSON.stringify(rNoGamma));
 check('pearson([1,2,3],[2,4,6]) = 1 and < 3 points → null', Math.abs(ctx.__p([1, 2, 3], [2, 4, 6]) - 1) < 1e-12 && ctx.__p([1, 2], [1, 2]) === null);
 console.log(`check-web · ${new Date().toISOString()} · node ${process.version}`);
 for (const [st, name, d] of results) console.log(`${st}  ${name}${d ? '  · ' + d : ''}`);
