@@ -1,8 +1,8 @@
 """Convert pipeline output → dashboard JSON.
 
 Takes either a CSV produced by `src/cli.py` or a DataFrame returned by
-`pipeline.run`, and emits a JSON file in the exact shape that
-`dashboard.jsx`'s "Load JSON" button accepts.
+`pipeline.run`, and emits a JSON file in the exact shape that the
+dashboard's "Load JSON" button (docs/app.js) accepts.
 
 Usage:
     python -m src.export_dashboard signals.csv -o dashboard_data.json

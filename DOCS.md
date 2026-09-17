@@ -83,7 +83,7 @@ the prompt without re-pulling transcripts.
 | Choice | Rationale |
 |---|---|
 | FMP for transcripts | Has a workable API. Seeking Alpha doesn't anymore; scraping fights paywalls. |
-| Pydantic schema | Single source of truth that both Anthropic and OpenAI can target via structured outputs. |
+| Pydantic schema | Single source of truth every provider's output is validated against (the schema goes into the prompt; Anthropic and OpenAI can also use native structured output). |
 | LLM-agnostic core | Lets you A/B providers and models; the schema makes outputs comparable. |
 | yfinance | Free, fine for portfolio scope. Polygon/Bloomberg if going further. |
 | React + Recharts dashboard | Self-contained single file, drops into any sandbox or claude.ai artifact. |
@@ -178,9 +178,11 @@ You can swap any single layer without touching the others.
 
 ### Technical features under the hood
 
-- **Provider-agnostic LLM layer** — Anthropic uses tool-use forced choice;
-  OpenAI uses `client.beta.chat.completions.parse(response_format=PydanticModel)`.
-  Both produce identical Pydantic objects.
+- **Provider-agnostic LLM layer** — by default all four providers (Anthropic, OpenAI,
+  Gemini, OpenAI-compatible) get the JSON schema in the prompt, and the reply is parsed
+  and validated with one repair round. `--structured native` switches Anthropic to
+  tool-use forced choice and OpenAI to `client.beta.chat.completions.parse(response_format=PydanticModel)`.
+  Every path produces the same Pydantic objects.
 - **Content-addressed caching** — keyed on
   `sha256(provider + model + prompt + section + text)`. Tweaking the prompt
   invalidates everything automatically; same prompt + same text on the same
@@ -342,7 +344,7 @@ The previous React/Recharts `dashboard.jsx` was removed in favour of this folder
 
 - Python 3.10+
 - A Financial Modeling Prep API key (free tier works for ~10 calls)
-- An Anthropic OR OpenAI API key (or both)
+- A key for one model provider (Anthropic, OpenAI or Gemini), or an OpenAI-compatible server such as a local model
 
 ### Setup
 
@@ -357,7 +359,7 @@ pip install -r requirements.txt
 
 # Configure keys
 cp .env.example .env
-# Open .env in any editor and fill in: FMP_API_KEY, ANTHROPIC_API_KEY (or OPENAI_API_KEY)
+# Open .env in any editor and fill in: FMP_API_KEY and the key for your provider (ANTHROPIC_API_KEY, OPENAI_API_KEY or GEMINI_API_KEY)
 ```
 
 ### Run the pipeline
