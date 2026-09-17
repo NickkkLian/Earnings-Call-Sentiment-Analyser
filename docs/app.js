@@ -19,7 +19,17 @@ function validate(obj) { // same rules the old React dashboard applied, plus num
     for (const [i, q] of c.quarters.entries()) { for (const f of REQ_Q) if (!(f in q)) return `${t} quarter ${i}: missing "${f}"`; for (const f of REQ_Q.slice(1)) if (typeof q[f] !== 'number' || !Number.isFinite(q[f])) return `${t} quarter ${i}: "${f}" must be a finite number`; if (q.mgmt < -1 || q.mgmt > 1 || q.qa < -1 || q.qa > 1) return `${t} quarter ${i}: tone must be within -1..1`;
       if ('sector_5d' in q && (typeof q.sector_5d !== 'number' || !Number.isFinite(q.sector_5d))) return `${t} quarter ${i}: "sector_5d" must be a finite number when present`; }
     for (const f of ['beta', 'gamma']) if (f in c && (typeof c[f] !== 'number' || !Number.isFinite(c[f]))) return `${t}: "${f}" must be a finite number when present`;
-    if (!Array.isArray(c.topics)) return `${t}: "topics" must be an array`; if (!Array.isArray(c.extracts)) return `${t}: "extracts" must be an array`; }
+    if (!Array.isArray(c.topics)) return `${t}: "topics" must be an array`; if (!Array.isArray(c.extracts)) return `${t}: "extracts" must be an array`;
+    // every topic and extract is checked too: a topic with only a name used to pass and then broke the page while drawing
+    for (const [i, tp] of c.topics.entries()) { const at = `${t} topic ${i}`;
+      if (!tp || typeof tp !== 'object' || Array.isArray(tp)) return `${at}: must be an object`;
+      if (typeof tp.name !== 'string' || !tp.name.trim()) return `${at}: "name" must be a non-empty string`;
+      for (const f of ['weight', 'mgmt', 'qa']) { if (!(f in tp)) return `${at} (${tp.name}): missing "${f}"`; if (typeof tp[f] !== 'number' || !Number.isFinite(tp[f])) return `${at} (${tp.name}): "${f}" must be a finite number`; }
+      if (tp.weight < 0 || tp.weight > 1) return `${at} (${tp.name}): "weight" must be within 0..1`;
+      if (tp.mgmt < -1 || tp.mgmt > 1 || tp.qa < -1 || tp.qa > 1) return `${at} (${tp.name}): tone must be within -1..1`; }
+    for (const [i, e] of c.extracts.entries()) { const at = `${t} extract ${i}`;
+      if (!e || typeof e !== 'object' || Array.isArray(e)) return `${at}: must be an object`;
+      for (const f of ['tag', 'speaker', 'text']) { if (!(f in e)) return `${at}: missing "${f}"`; if (typeof e[f] !== 'string') return `${at}: "${f}" must be text`; } } }
   return null;
 }
 function toast(msg, kind) { const box = $('#toasts'); const el = h('div', { class: 'toast enter', role: kind === 'error' ? 'alert' : 'status' }, h('span', {}, msg), h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': 'Dismiss', onclick: () => el.remove() }, '×')); box.append(el); requestAnimationFrame(() => el.classList.remove('enter')); setTimeout(() => el.remove(), kind === 'error' ? 8000 : 4000); }
@@ -144,7 +154,17 @@ function renderPage() {
   "notable_passages": [ { "tag": "confident" | "hedging" | "evasion" | "admission" | "contradiction", "speaker", "text" } ]
 }`))));
 }
-function loadFile(file) { if (!file) return; const rd = new FileReader(); rd.onload = ev => { try { const parsed = JSON.parse(ev.target.result); const err = validate(parsed); if (err) return toast('Invalid JSON: ' + err + ' — kept the current data', 'error'); S.data = parsed; S.custom = true; S.ticker = Object.keys(parsed)[0]; render(); toast(`Loaded ${Object.keys(parsed).length} tickers, ${Object.values(parsed).reduce((a, c) => a + c.quarters.length, 0)} calls from ${file.name}`); } catch (e) { toast('Parse error: ' + e.message, 'error'); } }; rd.onerror = () => toast('Could not read file', 'error'); rd.readAsText(file); }
+// A file replaces what is on screen only after it has passed validation and been drawn without an error; otherwise the current
+// data stays and the message names what is wrong (round-1 audit, 2026-09-16: a topic with only a name passed, replaced the data,
+// and left a half-drawn page behind "Parse error: Cannot read properties of undefined").
+function loadFile(file) { if (!file) return; const rd = new FileReader(); rd.onload = ev => {
+  let parsed; try { parsed = JSON.parse(ev.target.result); } catch (e) { return toast(`${file.name} is not valid JSON (${e.message}) — kept the current data`, 'error'); }
+  const err = validate(parsed); if (err) return toast(`${file.name} does not have the dashboard's shape: ${err} — kept the current data`, 'error');
+  const before = { data: S.data, custom: S.custom, ticker: S.ticker };
+  Object.assign(S, { data: parsed, custom: true, ticker: Object.keys(parsed)[0] });
+  try { render(); } catch (e) { Object.assign(S, before); render(); return toast(`${file.name} passed the checks but could not be drawn (${e.message}) — kept the current data`, 'error'); }
+  toast(`Loaded ${Object.keys(parsed).length} tickers, ${Object.values(parsed).reduce((a, c) => a + c.quarters.length, 0)} calls from ${file.name}`); };
+  rd.onerror = () => toast(`Could not read ${file.name} — kept the current data`, 'error'); rd.readAsText(file); }
 function init() {
   const root = document.documentElement, tb = $('#theme');
   Appearance.bindToggle(tb);   // ◐ switches light/dark only (appearance.js)
