@@ -41,7 +41,7 @@ Replace the fictional tickers with real ones FMP has transcripts for (most US-li
 ```mermaid
 flowchart LR
   A["FMP transcript"] --> B["split_prepared_qa<br/>operator hand-off regex"]
-  B --> C["LLM extraction<br/>Anthropic tool use · OpenAI JSON schema<br/>Pydantic SectionAnalysis"]
+  B --> C["LLM extraction<br/>JSON schema in the prompt · 4 providers<br/>Pydantic SectionAnalysis"]
   C --> D["CallAnalysis<br/>prepared · qa · gap"]
   E["yfinance prices + FMP EPS surprise"] --> F["residual_return<br/>r5 − β·sector − γ·surprise"]
   D --> G["signals.csv"]
@@ -120,7 +120,7 @@ src/
   llm.py               dependency-free HTTP adapter: Anthropic, OpenAI, Gemini, OpenAI-compatible
   transcripts.py       FMP fetcher + prepared/Q&A splitter
   prices.py            yfinance + EPS surprise + residual_return()
-  analyzer.py          LLM analyzer (Anthropic + OpenAI + content-addressed cache)
+  analyzer.py          LLM analyzer (any of the four providers, optional native structured output, content-addressed cache)
   pipeline.py          orchestrator → DataFrame
   export_dashboard.py  DataFrame → dashboard JSON
   eval.py              evaluation set scorer (+ --llm to populate, --break negative control)
