@@ -191,6 +191,7 @@ function init() {
   const t = fromHash(); if (t && DEMO[t]) S.ticker = t;
   // any other address (the home link's "#", an old ticker) shows the first company, and render() writes its ticker back
   window.addEventListener('hashchange', () => { const t = fromHash(); S.ticker = S.data[t] ? t : Object.keys(S.data)[0]; render(); });
+  $('.skip').addEventListener('click', e => { e.preventDefault(); $('#main').focus(); });   // "#main" in the address would be read as a ticker
   document.addEventListener('keydown', roving);
   render();
 }
