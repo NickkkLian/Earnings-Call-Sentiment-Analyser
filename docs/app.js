@@ -151,13 +151,15 @@ function renderPage() {
       ? h('div', { class: 'recon', role: 'note' }, `5-day return ${pct(cur.ret_5d)} = sector ${pct(rec.sectorPart)} (β ${rec.beta.toFixed(1)}) + surprise ${pct(rec.surprisePart)} (γ ${rec.gamma.toFixed(1)} × ${pct(cur.eps_surprise)}) + residual ${pct(cur.residual_5d)} `,
           rec.ok ? h('span', { class: 'ok' }, '✓ reconciles') : h('span', { class: 'bad' }, `✗ off by ${(Math.abs(rec.off) * 100).toFixed(2)} pp`))
       : h('div', { class: 'recon unknown', role: 'note' }, `${rec.missing.join(' and ')} not in this file — residual not checkable`)));
-  const delta = (v, invert) => h('small', { class: (invert ? -v : v) > 0 ? 'pos' : (invert ? -v : v) < 0 ? 'neg' : 'neu' }, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);
+  // colour may repeat what a sign already says, never stand alone for good or bad (ruling 2026-09-16 20:11 Q10): the strip's
+  // unsigned figures and these deltas carry no colour classes
+  const delta = v => h('small', {}, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);
   panel.append(h('div', { class: 'strip', role: 'group', 'aria-label': 'Current quarter signals' },
     h('div', {}, h('div', { class: 'lbl' }, 'Management tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.mgmt) }, tone(cur.mgmt)), delta(cur.mgmt - prev.mgmt))),
     h('div', {}, h('div', { class: 'lbl' }, 'Analyst Q&A tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.qa) }, tone(cur.qa)), delta(cur.qa - prev.qa))),
     h('div', {}, h('div', { class: 'lbl' }, h('span', {}, 'Sentiment gap'), h('span', { class: 'tag ' + (gap > 0.2 ? 'tag-warning' : 'tag-neutral') }, gap > 0.2 ? 'wide' : 'normal')), h('div', { class: 'val' }, h('b', {}, tone(gap)), delta(gap - gapPrev))),
-    h('div', {}, h('div', { class: 'lbl' }, 'Hedging density'), h('div', { class: 'val' }, h('b', { class: cur.hedging > 0.35 ? 'neg' : '' }, cur.hedging.toFixed(2)), delta(cur.hedging - prev.hedging, true))),
-    h('div', {}, h('div', { class: 'lbl' }, 'Guidance confidence'), h('div', { class: 'val' }, h('b', { class: cur.guidance > 0.7 ? 'pos' : cur.guidance < 0.4 ? 'neg' : '' }, cur.guidance.toFixed(2)), delta(cur.guidance - prev.guidance)))));
+    h('div', {}, h('div', { class: 'lbl' }, 'Hedging density'), h('div', { class: 'val' }, h('b', {}, cur.hedging.toFixed(2)), delta(cur.hedging - prev.hedging))),
+    h('div', {}, h('div', { class: 'lbl' }, 'Guidance confidence'), h('div', { class: 'val' }, h('b', {}, cur.guidance.toFixed(2)), delta(cur.guidance - prev.guidance)))));
   const maxW = Math.max(0.001, ...c.topics.map(t => t.weight));
   panel.append(h('div', { class: 'panels' },
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Multi-quarter sentiment trajectory'), h('p', {}, `Management prepared remarks vs analyst Q&A · ${qs.length} quarters · shaded band = framing gap`)), trajectory(qs), h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'background:var(--viz-1)' }), 'Management'), h('span', {}, h('i', { style: 'background:var(--viz-2)' }), 'Analyst Q&A'), h('span', {}, h('i', { style: 'background:var(--viz-1);opacity:.25;height:8px' }), 'Framing gap'))),
