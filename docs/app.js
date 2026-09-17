@@ -106,13 +106,20 @@ function focusKey(el) {
   find.caret = typeof el.selectionStart === 'number' ? [el.selectionStart, el.selectionEnd] : null;   // a text field keeps its caret
   return find;
 }
+// Where focus goes when there is no control to go back to, and where the skip link sends it: the first visible h1 in main,
+// else the first visible h2, else main itself (ruling 2026-09-16 20:11 Q16; one query for 'main h1, main h2, main' used to
+// return main first, whose ring was off screen)
+function firstHeading() {
+  const seen = x => { const r = x.getBoundingClientRect(), cs = getComputedStyle(x); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && !/inset\(50%\)|rect\(0/.test(cs.clipPath + cs.clip); };
+  const x = [...document.querySelectorAll('main h1')].find(seen) || [...document.querySelectorAll('main h2')].find(seen) || $('#main');
+  if (x && !x.hasAttribute('tabindex')) x.setAttribute('tabindex', '-1');
+  return x;
+}
 function restoreFocus(find) {
   if (!find || (document.activeElement && document.activeElement !== document.body)) return;
   let el = find();
-  // headings in this order (querySelectorAll on 'main h1, main h2, main' returns document order, so main itself always won)
-  const heading = () => { for (const sel of ['main h1', 'main h2', 'main']) { const x = [...document.querySelectorAll(sel)].find(y => { const r = y.getBoundingClientRect(); return r.width > 2 && r.height > 2; }); if (x) { if (!x.hasAttribute('tabindex')) x.setAttribute('tabindex', '-1'); return x; } } return null; };
-  if (!el || !el.getClientRects().length) el = heading();
-  if (el) { el.focus(); if (document.activeElement !== el && (el = heading())) el.focus(); }   // a disabled control does not take focus
+  if (!el || !el.getClientRects().length) el = firstHeading();
+  if (el) { el.focus(); if (document.activeElement !== el && (el = firstHeading())) el.focus(); }   // a disabled control does not take focus
   if (el && find.caret && el.setSelectionRange) try { el.setSelectionRange(find.caret[0], find.caret[1]); } catch (e) { /* not a text field */ }
 }
 function render() { const find = focusKey(document.activeElement); renderPage(); restoreFocus(find); }
@@ -196,7 +203,7 @@ function init() {
   const t = fromHash(); if (t && DEMO[t]) S.ticker = t;
   // any other address (the home link's "#", an old ticker) shows the first company, and render() writes its ticker back
   window.addEventListener('hashchange', () => { const t = fromHash(); S.ticker = S.data[t] ? t : Object.keys(S.data)[0]; render(); });
-  $('.skip').addEventListener('click', e => { e.preventDefault(); $('#main').focus(); });   // "#main" in the address would be read as a ticker
+  $('.skip').addEventListener('click', e => { e.preventDefault(); firstHeading().focus(); });   // "#main" in the address would be read as a ticker
   document.addEventListener('keydown', roving);
   render();
 }
