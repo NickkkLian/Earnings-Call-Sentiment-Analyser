@@ -40,7 +40,7 @@ const fromHash = () => { try { return decodeURIComponent(location.hash.slice(1))
 
 /* ---------- charts ---------- */
 function trajectory(quarters) {
-  const W = 640, H = 260, L = 36, R = 12, T = 14, B = 34, n = quarters.length;
+  const W = 640, H = 260, L = 36, R = 24, T = 14, B = 34, n = quarters.length;   // R leaves half a quarter label of room (the last one was cut)
   const x = i => L + (n > 1 ? i / (n - 1) : 0.5) * (W - L - R), y = v => T + (1 - (v + 0.5) / 1.5) * (H - T - B);
   const pathOf = key => quarters.map((q, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(q[key]).toFixed(1)}`).join(' ');
   const gap = quarters.map((q, i) => `${x(i).toFixed(1)},${y(q.mgmt).toFixed(1)}`).concat(quarters.map((q, i) => `${x(i).toFixed(1)},${y(q.qa).toFixed(1)}`).reverse()).join(' ');
