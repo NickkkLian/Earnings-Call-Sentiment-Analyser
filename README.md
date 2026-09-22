@@ -73,7 +73,7 @@ node docs/check-web.mjs
 ```
 
 - `tests/` covers the transcript splitter (every operator phrasing the regex claims to recognise, the no-marker case, first match wins), the residual-return arithmetic and trading-day windows on a fixed synthetic series, and the dashboard export (topic merging across sections, Q&A-only topics, NaN rows dropped rather than zeroed). No network access.
-- `src/eval.py` scores the extraction step on `eval/passages.json`: 30 synthetic passages (six per tag) and 10 synthetic guidance snippets. It runs through the project's own analyzer — same prompt, same schema — and records the model name and date in `eval/llm-cache.json`. Until a maintainer has run `python -m src.eval --llm` once with a key, it reports **NOT RUN** (exit code 2) rather than a made-up number. `--break` is the negative control: a cached tag outside the schema must be refused. This is a small evaluation set, not a formal evaluation pipeline.
+- `src/eval.py` scores the extraction step on `eval/passages.json`: 30 synthetic passages (six per tag) and 10 synthetic guidance snippets. It runs through the project's own analyzer — same prompt, same schema — and records the model name and date in `eval/llm-cache.json`. That run has been made: 2026-09-22, `claude-haiku-4-5-20251001`, **30/30 passages and 10/10 guidance snippets** (six right out of six for each of confident, hedging, evasion, admission and contradiction). Without the cache it reports **NOT RUN** (exit code 2) rather than a made-up number. `--break` is the negative control: a cached tag outside the schema must be refused. This is a small evaluation set, not a formal evaluation pipeline.
 - `docs/check-web.mjs` asserts the dashboard loads no external scripts, that the demo data passes the loader's own validation, that mutated files are rejected with specific messages, and that the correlation helper is right.
 
 CI runs all of the above on every push (Python 3.10 and 3.13; the eval score only once the cache exists).
@@ -96,7 +96,7 @@ The same variables work from `.env` (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`
 
 | Provider | Selected with | What has been run |
 |---|---|---|
-| Claude (Anthropic) | `--provider anthropic` (default) | Request and reply format, schema-in-prompt, validation, repair round and caching checked against a local mock of the documented API (`tests/test_llm_providers.py`). **Not yet run against the live API.** |
+| Claude (Anthropic) | `--provider anthropic` (default) | Request and reply format, schema-in-prompt, validation, repair round and caching checked against a local mock of the documented API (`tests/test_llm_providers.py`). **Run against the live API once**, 2026-09-22 with `claude-haiku-4-5-20251001`: 30 passages and 10 guidance snippets scored, every one of them tagged as the set expects — the cache that run produced is `eval/llm-cache.json`. |
 | OpenAI | `--provider openai` | Same checks against a local mock (sends `max_completion_tokens`, no `temperature`). Should work per OpenAI's documentation; **not run against the live API.** |
 | Google Gemini | `--provider gemini --model …` | Same checks against a local mock; key sent in the `x-goog-api-key` header. Should work per Google's documentation; **not run against the live API.** |
 | OpenAI-compatible | `--provider openai-compatible --base-url … --model …` | Same checks against a local mock. **Not run against a real Ollama, LM Studio or vLLM server.** |
