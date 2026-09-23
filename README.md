@@ -73,7 +73,7 @@ node docs/check-web.mjs
 ```
 
 - `tests/` covers the transcript splitter (every operator phrasing the regex claims to recognise, the no-marker case, first match wins), the residual-return arithmetic and trading-day windows on a fixed synthetic series, and the dashboard export (topic merging across sections, Q&A-only topics, NaN rows dropped rather than zeroed). No network access.
-- `src/eval.py` scores the extraction step on `eval/passages.json`: 30 synthetic passages (six per tag) and 10 synthetic guidance snippets. It runs through the project's own analyzer — same prompt, same schema — and records the model name and date in `eval/llm-cache.json`. That run has been made: 2026-09-22, `claude-haiku-4-5-20251001`, **30/30 passages and 10/10 guidance snippets** (six right out of six for each of confident, hedging, evasion, admission and contradiction). Without the cache it reports **NOT RUN** (exit code 2) rather than a made-up number. `--break` is the negative control: a cached tag outside the schema must be refused. This is a small evaluation set, not a formal evaluation pipeline.
+- `src/eval.py` scores the extraction step on `eval/passages.json`: 30 synthetic passages (six per tag) and 10 synthetic guidance snippets. It runs through the project's own analyzer — same prompt, same schema — and records the model name and date in `eval/llm-cache.json`. That run has been made: 2026-09-22, `claude-haiku-4-5-20251001`, **30/30 passages and 10/10 guidance snippets** (six right out of six for each of confident, hedging, evasion, admission and contradiction). Without the cache it reports **NOT RUN** (exit code 2) rather than a made-up number. `--break` is the negative control: a cached tag outside the schema must be refused. This is a small evaluation set, not a formal evaluation pipeline — and `eval/llm-cache.json` is the whole of what that run left behind: it records the model name and date, nothing here shows a request went over the network, and a hand-written cache would be indistinguishable from it.
 - `docs/check-web.mjs` asserts the dashboard loads no external scripts, that the demo data passes the loader's own validation, that mutated files are rejected with specific messages, and that the correlation helper is right.
 
 CI runs all of the above on every push (Python 3.10 and 3.13; the eval score only once the cache exists).
@@ -83,11 +83,11 @@ CI runs all of the above on every push (Python 3.10 and 3.13; the eval score onl
 Scoring works with Claude (default), OpenAI, Google Gemini or any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, gateways):
 
 ```bash
-python -m src.cli --tickers NWSC --quarters 2025Q2 --provider anthropic                     # ANTHROPIC_API_KEY
-python -m src.cli --tickers NWSC --quarters 2025Q2 --provider openai                        # OPENAI_API_KEY
-python -m src.cli --tickers NWSC --quarters 2025Q2 --provider gemini --model <model id>      # GEMINI_API_KEY
+python -m src.cli --tickers NWSC --quarters 2025Q2 --provider anthropic                    # ANTHROPIC_API_KEY
+python -m src.cli --tickers NWSC --quarters 2025Q2 --provider openai                       # OPENAI_API_KEY
+python -m src.cli --tickers NWSC --quarters 2025Q2 --provider gemini --model your-model-id  # GEMINI_API_KEY
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider openai-compatible \
-    --base-url http://localhost:11434/v1 --model <model>                                    # LLM_API_KEY if the server needs one
+    --base-url http://localhost:11434/v1 --model your-model-id                             # LLM_API_KEY if the server needs one
 ```
 
 The same variables work from `.env` (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`). Claude and OpenAI keep their historical default models (`claude-haiku-4-5-20251001`, `gpt-4o-mini`); Gemini and OpenAI-compatible endpoints need a model id.
