@@ -284,7 +284,7 @@ dialog table{font-size:var(--text-sm)}dialog td{padding:2px var(--space-3) 2px 0
 .company h1{font-size:var(--text-xl);font-weight:var(--weight-semibold)}
 .company .sub{font-size:var(--text-xs);color:var(--text-2);margin-top:2px}
 .recon{flex-basis:100%;text-align:right;font:var(--weight-regular) var(--text-xs)/1.5 var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text-2)}
-.recon .ok{color:var(--text)}   /* v2 §9.16④: no green text carries status; the ✓ and the word do */
+.recon .ok{color:var(--text)}   /* no green text carries status; the ✓ and the word do */
 .recon .bad,.ticker-tabs .meta .bad{color:var(--danger)}
 .recon.unknown{padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);background-image:repeating-linear-gradient(135deg,var(--hairline) 0 2px,transparent 2px 6px)}
 .company .kpis{margin-left:auto;display:flex;gap:var(--space-6)}
@@ -344,10 +344,10 @@ dialog table{font-size:var(--text-sm)}dialog td{padding:2px var(--space-3) 2px 0
 }
 .topbar :focus-visible,.plate :focus-visible,.honest :focus-visible{outline-color:var(--on-band)}
 /* Focus scrolls clear of the sticky top bar: a control reached by Tab, or <main> after the skip link, never lands under
-   the bar (round-1 audits, 2026-09-16: the ring of <main> and most of a button sat behind it). A product whose sticky
+   the bar (2026-09-16: the ring of <main> and most of a button sat behind it). A product whose sticky
    chrome is taller than the bar, or wraps, sets --sticky-top to its measured height. */
 html{scroll-padding-top:calc(var(--sticky-top,var(--topbar-h)) + var(--space-3))}
-/* Native checkboxes and radios take the palette's accent instead of the browser's blue (ruling 2026-09-16 20:11 Q4:
+/* Native checkboxes and radios take the palette's accent instead of the browser's blue (contrast:
    checked fill against its surface 4.55–16.17:1, tick against the fill 4.71–16.34:1 across the three palettes, light and dark). */
 :root{accent-color:var(--accent)}
 .topbar ::selection,.plate ::selection,.honest ::selection{background:var(--on-band-2);color:var(--band)}

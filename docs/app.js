@@ -32,7 +32,7 @@ function validate(obj) { // same rules the old React dashboard applied, plus num
       for (const f of ['tag', 'speaker', 'text']) { if (!(f in e)) return `${at}: missing "${f}"`; if (typeof e[f] !== 'string') return `${at}: "${f}" must be text`; } } }
   return null;
 }
-// an error toast that carries its fix as a button (`action`: { label, run }) stays until it is dismissed (ruling 2026-09-16 20:11 Q8, form B)
+// an error toast that carries its fix as a button (`action`: { label, run }) stays until it is dismissed
 function toast(msg, kind, action) { const box = $('#toasts'); const el = h('div', { class: 'toast enter', role: kind === 'error' ? 'alert' : 'status' }, h('span', {}, msg), action ? h('button', { class: 'btn btn-sm', onclick: () => { if (action.focus) action.focus().focus(); el.remove(); action.run(); } }, action.label) : null, h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': 'Dismiss', onclick: () => el.remove() }, '×')); box.append(el); requestAnimationFrame(() => el.classList.remove('enter')); if (!action) setTimeout(() => el.remove(), kind === 'error' ? 8000 : 4000); }
 
 const S = { data: DEMO, custom: false, ticker: Object.keys(DEMO)[0], view: {} };
@@ -107,7 +107,7 @@ function focusKey(el) {
   return find;
 }
 // Where focus goes when there is no control to go back to, and where the skip link sends it: the first visible h1 in main,
-// else the first visible h2, else main itself (ruling 2026-09-16 20:11 Q16; one query for 'main h1, main h2, main' used to
+// else the first visible h2, else main itself (one query for 'main h1, main h2, main' used to
 // return main first, whose ring was off screen)
 function firstHeading() {
   const seen = x => { const r = x.getBoundingClientRect(), cs = getComputedStyle(x); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && !/inset\(50%\)|rect\(0/.test(cs.clipPath + cs.clip); };
@@ -151,7 +151,7 @@ function renderPage() {
       ? h('div', { class: 'recon', role: 'note' }, `5-day return ${pct(cur.ret_5d)} = sector ${pct(rec.sectorPart)} (β ${rec.beta.toFixed(1)}) + surprise ${pct(rec.surprisePart)} (γ ${rec.gamma.toFixed(1)} × ${pct(cur.eps_surprise)}) + residual ${pct(cur.residual_5d)} `,
           rec.ok ? h('span', { class: 'ok' }, '✓ reconciles') : h('span', { class: 'bad' }, `✗ off by ${(Math.abs(rec.off) * 100).toFixed(2)} pp`))
       : h('div', { class: 'recon unknown', role: 'note' }, `${rec.missing.join(' and ')} not in this file — residual not checkable`)));
-  // colour may repeat what a sign already says, never stand alone for good or bad (ruling 2026-09-16 20:11 Q10): the strip's
+  // colour may repeat what a sign already says, never stand alone for good or bad: the strip's
   // unsigned figures and these deltas carry no colour classes
   const delta = v => h('small', {}, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);
   panel.append(h('div', { class: 'strip', role: 'group', 'aria-label': 'Current quarter signals' },
@@ -180,11 +180,11 @@ function renderPage() {
 }`))));
 }
 // A file replaces what is on screen only after it has passed validation and been drawn without an error; otherwise the current
-// data stays and the message names what is wrong (round-1 audit, 2026-09-16: a topic with only a name passed, replaced the data,
+// data stays and the message names what is wrong (2026-09-16: a topic with only a name passed, replaced the data,
 // and left a half-drawn page behind "Parse error: Cannot read properties of undefined").
 function loadFile(file) { if (!file) return; const rd = new FileReader(); rd.onload = ev => {
   // each message says what is wrong and where the right shape is, keeps the current data, and offers to choose another file;
-  // a script's own exception text is never shown (ruling 2026-09-16 20:11 Q8)
+  // a script's own exception text is never shown
   // the message goes away with the button, so focus moves to Load JSON first rather than falling to <body>
   const again = { label: 'Choose another file', run: () => $('#file').click(), focus: () => $('#load') }, shape = 'Sample JSON in the top bar shows the shape the dashboard reads. Nothing was changed.';
   let parsed; try { parsed = JSON.parse(ev.target.result); } catch (e) { return toast(`${file.name} is not valid JSON. ${shape}`, 'error', again); }
