@@ -6,7 +6,7 @@ An earnings call has two halves: what management chose to say, and what analysts
 
 > Research tooling, not a trading signal. The dashboard ships with **synthetic data for fictional companies**; the pipeline needs your own FMP and LLM keys and has only been run on small samples.
 
-[![Check](https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser/actions/workflows/check.yml/badge.svg)](https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser/actions/workflows/check.yml)
+[![Check](https://img.shields.io/github/actions/workflow/status/NickkkLian/Earnings-Call-Sentiment-Analyser/check.yml?branch=main&label=check&style=flat-square&labelColor=2f5859)](https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser/actions/workflows/check.yml)
 
 ![CallDelta dashboard: KPI strip, management vs analyst tone trajectory, topic emphasis, gap-vs-residual scatter and tagged extracts](docs/screenshot-dashboard.png)
 
@@ -39,6 +39,7 @@ Replace the fictional tickers with real ones FMP has transcripts for (most US-li
 ## How it fits together
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "fontFamily": "Inter, BlinkMacSystemFont, Segoe UI, Helvetica Neue, Helvetica, Arial", "primaryColor": "#dae7db", "mainBkg": "#dae7db", "primaryTextColor": "#1d1b24", "nodeTextColor": "#1d1b24", "textColor": "#1d1b24", "primaryBorderColor": "#2f5859", "nodeBorder": "#2f5859", "secondaryColor": "#fae8eb", "tertiaryColor": "#f7e9e8", "lineColor": "#5f7f76", "arrowheadColor": "#5f7f76", "defaultLinkColor": "#5f7f76", "edgeLabelBackground": "#fae8eb", "clusterBkg": "#f7e9e8", "clusterBorder": "#a8707a", "titleColor": "#7d2d44"}}}%%
 flowchart LR
   A["FMP transcript"] --> B["split_prepared_qa<br/>operator hand-off regex"]
   B --> C["LLM extraction<br/>JSON schema in the prompt · 4 providers<br/>Pydantic SectionAnalysis"]
