@@ -13,8 +13,9 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
+
+from .fmp import fmp_get
 
 
 FMP_BASE = "https://financialmodelingprep.com/api/v3"
@@ -44,10 +45,8 @@ class Transcript:
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
 def _fetch_raw(ticker: str, year: int, quarter: int, api_key: str) -> dict:
     url = f"{FMP_BASE}/earning_call_transcript/{ticker.upper()}"
-    params = {"year": year, "quarter": quarter, "apikey": api_key}
-    r = requests.get(url, params=params, timeout=30)
-    r.raise_for_status()
-    data = r.json()
+    # a failure raises FMPError, which never carries the key (src/fmp.py); tenacity retries it like any error
+    data = fmp_get(url, api_key, params={"year": year, "quarter": quarter}).json()
     if not data:
         raise ValueError(f"No transcript found for {ticker} Q{quarter} {year}")
     return data[0]

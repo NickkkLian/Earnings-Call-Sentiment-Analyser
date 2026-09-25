@@ -14,8 +14,8 @@ Configuration (environment variables)
 
 Model-agnostic by design: prompts ask for JSON in plain words, and callers validate the reply themselves
 (`extract_json`). No provider-only feature — tool use, JSON mode, response schemas — is a precondition, so a model
-that ignores a formatting hint fails validation instead of passing silently. Keys only ever travel in headers,
-never in a URL.
+that ignores a formatting hint fails validation instead of passing silently. Model keys only ever travel in headers,
+never in a URL. (The FMP data key is a URL parameter by FMP's design; src/fmp.py keeps it out of error messages.)
 """
 import json
 import os

@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 import pandas as pd
-import requests
+
+from .fmp import fmp_get
 
 
 DEFAULT_PROXY = "SPY"
@@ -126,9 +127,7 @@ def fetch_eps_surprise(ticker: str, call_date: str, api_key: str | None = None) 
     """Pull (actual_eps, estimated_eps, surprise%) from FMP for the quarter ending on/around call_date."""
     api_key = api_key or os.environ.get("FMP_API_KEY")
     url = f"https://financialmodelingprep.com/api/v3/earnings-surprises/{ticker.upper()}"
-    r = requests.get(url, params={"apikey": api_key}, timeout=30)
-    r.raise_for_status()
-    rows = r.json()
+    rows = fmp_get(url, api_key).json()   # a failure raises FMPError, which never carries the key (src/fmp.py)
     target = pd.to_datetime(call_date)
     # Pick the row with the closest reporting date ≤ call date
     candidates = [row for row in rows if pd.to_datetime(row["date"]) <= target + pd.Timedelta(days=2)]
