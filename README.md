@@ -14,7 +14,7 @@ An earnings call has two halves: what management chose to say, and what analysts
 
 ## Try it
 
-**In the browser** — open the [dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/) (static, no server) or `docs/index.html` from a clone. It loads four fictional companies; **Load JSON** (or drag a file onto the page) replaces them with real pipeline output, validated for shape first; **Sample JSON** downloads the demo file so you can see the schema.
+**In the browser** — open the [dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/) (static, no server) or `docs/index.html` from a clone. It loads four fictional companies; **Load JSON** (or drag a file onto the page) replaces them with real pipeline output, validated for shape first; **Sample JSON** (under the schema in the Methodology section) downloads the demo file so you can see the schema.
 
 **Run the pipeline** — Python 3.10+; keys go in `.env`, never in the repo.
 

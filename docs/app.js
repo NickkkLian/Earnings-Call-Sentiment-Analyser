@@ -169,7 +169,7 @@ function renderPage() {
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Sentiment gap vs residual return'), h('p', {}, `5-day post-call return after controlling for sector and EPS surprise · one point per call · Pearson r = ${r === null ? 'n/a' : r.toFixed(2)} (n = ${qs.length}, illustrative, not a signal)`)), scatter(qs), h('p', { class: 'hint', style: 'margin-top:8px' }, 'Quadrant of interest: wide gap and negative residual — management rosy, market unconvinced.')),
     h('div', { class: 'card' }, h('h2', {}, 'Notable extracts'), h('p', { class: 'hint', style: 'margin-bottom:12px' }, `${cur.label} · passages the model tagged`), c.extracts.length ? c.extracts.map(e => h('div', { class: 'extract' }, h('div', {}, h('span', { class: 'cat' }, e.tag)), h('div', {}, h('q', {}, esc(e.text)), h('div', { class: 'who' }, '— ' + esc(e.speaker))))) : h('p', { class: 'muted' }, 'No extracts in this file.'))));
   main.append(h('div', { class: 'card' }, h('h2', {}, 'Methodology'), h('div', { class: 'method' }, h('div', {}, h('p', {}, 'Each transcript is split into prepared remarks and analyst Q&A and scored separately by the model against a fixed JSON schema, written into the prompt and validated, with one repair round (Anthropic, OpenAI, Gemini or an OpenAI-compatible server; native structured output is an option for Anthropic and OpenAI). Tone, hedging density, guidance confidence, topics and tagged passages come back as structured fields, so quarters are comparable.'), h('p', {}, '* Residual = 5-day return − β·sector-ETF return − γ·EPS surprise (β = 1, γ = 1.5 in the pipeline). What is left is what the tone of the call added beyond what was reported.'), h('p', {}, 'The demo numbers are illustrative series for fictional companies. Load a JSON file produced by ', h('code', {}, 'python -m src.export_dashboard signals.csv'), ' to see real pipeline output; the loader validates the shape and rejects malformed files with a specific message.')),
-    h('pre', { tabindex: '0', role: 'region', 'aria-label': 'Model output schema' }, `{
+    h('div', {}, h('pre', { tabindex: '0', role: 'region', 'aria-label': 'Model output schema' }, `{
   "section": "prepared" | "qa",
   "tone": -1.0..1.0,
   "hedging_density": 0.0..1.0,
@@ -177,7 +177,7 @@ function renderPage() {
   "guidance_change": "raise" | "hold" | "lower" | "none",
   "topics": [ { "name", "weight": 0..1, "tone": -1..1 } ],
   "notable_passages": [ { "tag": "confident" | "hedging" | "evasion" | "admission" | "contradiction", "speaker", "text" } ]
-}`))));
+}`), h('p', { class: 'sample-row' }, h('button', { class: 'btn btn-sm', id: 'sample', title: 'Download the demo data to see the expected JSON shape', onclick: downloadSample }, 'Sample JSON'), h('span', {}, 'downloads the demo file in the shape Load JSON reads.'))))));
 }
 // A file replaces what is on screen only after it has passed validation and been drawn without an error; otherwise the current
 // data stays and the message names what is wrong (2026-09-16: a topic with only a name passed, replaced the data,
@@ -186,7 +186,7 @@ function loadFile(file) { if (!file) return; const rd = new FileReader(); rd.onl
   // each message says what is wrong and where the right shape is, keeps the current data, and offers to choose another file;
   // a script's own exception text is never shown
   // the message goes away with the button, so focus moves to Load JSON first rather than falling to <body>
-  const again = { label: 'Choose another file', run: () => $('#file').click(), focus: () => $('#load') }, shape = 'Sample JSON in the top bar shows the shape the dashboard reads. Nothing was changed.';
+  const again = { label: 'Choose another file', run: () => $('#file').click(), focus: () => $('#load') }, shape = 'Sample JSON, under the schema in the Methodology section, shows the shape the dashboard reads. Nothing was changed.';
   let parsed; try { parsed = JSON.parse(ev.target.result); } catch (e) { return toast(`${file.name} is not valid JSON. ${shape}`, 'error', again); }
   const err = validate(parsed); if (err) return toast(`${file.name} does not have the dashboard's shape: ${err}. ${shape}`, 'error', again);
   const before = { data: S.data, custom: S.custom, ticker: S.ticker };
@@ -194,12 +194,13 @@ function loadFile(file) { if (!file) return; const rd = new FileReader(); rd.onl
   try { render(); } catch (e) { Object.assign(S, before); render(); console.error(e); return toast(`${file.name} passed the checks but could not be drawn. ${shape}`, 'error', again); }
   toast(`Loaded ${Object.keys(parsed).length} tickers, ${Object.values(parsed).reduce((a, c) => a + c.quarters.length, 0)} calls from ${file.name}`); };
   rd.onerror = () => toast(`Could not read ${file.name}. Nothing was changed.`, 'error', { label: 'Choose another file', run: () => $('#file').click(), focus: () => $('#load') }); rd.readAsText(file); }
+// Sample JSON sits next to the schema in the Methodology card (re-rendered with the page), so its handler is attached there
+function downloadSample() { const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(DEMO, null, 2)], { type: 'application/json' })), download: 'dashboard_sample.json' }); document.body.append(a); a.click(); a.remove(); }
 function init() {
   const root = document.documentElement, tb = $('#theme');
   Appearance.bindToggle(tb);   // ◐ switches light/dark only (appearance.js)
   Appearance.bindSettings($('#nl-settings-button'));   // the gear: palette + light/dark
   $('#load').addEventListener('click', () => $('#file').click()); $('#file').addEventListener('change', e => { loadFile(e.target.files[0]); e.target.value = ''; });
-  $('#sample').addEventListener('click', () => { const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(DEMO, null, 2)], { type: 'application/json' })), download: 'dashboard_sample.json' }); document.body.append(a); a.click(); a.remove(); });
   $('#reset').addEventListener('click', () => { S.data = DEMO; S.custom = false; S.ticker = Object.keys(DEMO)[0]; render(); toast('Reset to demo data'); });
   document.addEventListener('dragover', e => e.preventDefault()); document.addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
   const t = fromHash(); if (t && DEMO[t]) S.ticker = t;

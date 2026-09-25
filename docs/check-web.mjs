@@ -39,6 +39,8 @@ check('negative control: an extract without its text is rejected', /GRFD extract
 const noGamma = JSON.parse(JSON.stringify(demo)); delete noGamma.GRFD.gamma;
 const rNoGamma = ctx.__r(noGamma.GRFD, noGamma.GRFD.quarters[7]);
 check('a company without γ is "not checkable" and says γ is what is missing', rNoGamma.checkable === false && rNoGamma.missing.join() === 'γ', JSON.stringify(rNoGamma));
+// Sample JSON lives next to the schema in the Methodology card; the load-error message has to send people there, not to the top bar
+check('Sample JSON is not in the top bar, is rendered in the Methodology card, and the load error points there', !/id="sample"/.test(html) && /h\('pre'[\s\S]*?id: 'sample'/.test(app.slice(app.indexOf("'Methodology'"))) && /shape = 'Sample JSON, under the schema in the Methodology section/.test(app) && !/Sample JSON in the top bar/.test(app));
 check('pearson([1,2,3],[2,4,6]) = 1 and < 3 points → null', Math.abs(ctx.__p([1, 2, 3], [2, 4, 6]) - 1) < 1e-12 && ctx.__p([1, 2], [1, 2]) === null);
 console.log(`check-web · ${new Date().toISOString()} · node ${process.version}`);
 for (const [st, name, d] of results) console.log(`${st}  ${name}${d ? '  · ' + d : ''}`);
