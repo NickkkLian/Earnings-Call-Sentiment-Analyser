@@ -113,7 +113,7 @@ Transcripts and LLM responses are cached under `./cache/`. The LLM cache key is 
 - **EPS-surprise control is rough.** Production work would fit `γ` per-ticker or per-sector instead of using a constant. Easy upgrade.
 - **Sector proxy is crude.** SOXX / XLC / XLY etc. — fine for a portfolio project, replace with a proper factor model for real work.
 
-**Not verified here:** the pipeline has not been run against live FMP/yfinance data for this revision (network calls are not covered by tests); the evaluation score is unknown until the cache exists; the dashboard was checked in Chrome only; the demo numbers are illustrative series, not model output.
+**Not verified here:** the pipeline has not been run against live FMP/yfinance data for this revision (network calls are not covered by tests); the dashboard was checked in Chrome only; the demo numbers are illustrative series, not model output.
 
 ## Layout
 

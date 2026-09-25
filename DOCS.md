@@ -1,6 +1,6 @@
 # Documentation
 
-> A complete walkthrough of the Earnings Call Sentiment Analyser — what it is,
+> A complete walkthrough of CallDelta — what it is,
 > how it works, how to extend it, and how to run it from zero.
 
 ---
@@ -60,15 +60,16 @@ The system has three layers, deliberately decoupled.
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ ANALYSIS                                                        │
-│ Send each call section to an LLM (Claude or GPT) with a strict  │
-│ Pydantic schema. Get back tone, hedging, topics, extracts.      │
+│ Send each call section to a model (Claude, GPT, Gemini or any   │
+│ OpenAI-compatible endpoint) with a strict Pydantic schema. Get  │
+│ back tone, hedging, topics, extracts.                           │
 │ Compute residual return = 5d return − β·sector − γ·EPS surprise.│
 └─────────────────────────────────────────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ PRESENTATION                                                    │
-│ Long-format DataFrame → CSV → JSON → React dashboard.           │
+│ Long-format DataFrame → CSV → JSON → static dashboard (docs/).  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -86,7 +87,7 @@ the prompt without re-pulling transcripts.
 | Pydantic schema | Single source of truth every provider's output is validated against (the schema goes into the prompt; Anthropic and OpenAI can also use native structured output). |
 | LLM-agnostic core | Lets you A/B providers and models; the schema makes outputs comparable. |
 | yfinance | Free, fine for portfolio scope. Polygon/Bloomberg if going further. |
-| React + Recharts dashboard | Self-contained single file, drops into any sandbox or claude.ai artifact. |
+| Static dashboard in `docs/` | Plain HTML, CSS and JS with hand-drawn SVG charts: no framework, no build step, no CDN scripts, so GitHub Pages serves it as it is. |
 | On-disk cache by content hash | LLM calls deduplicated by `(provider, model, prompt, text)`. Re-running is free. |
 
 ---
@@ -321,7 +322,7 @@ it. Deliberately thin — most logic lives in the tested modules.
 
 ### Folder: `docs/`
 
-A static page (GitHub Pages root): `index.html` + `app.css` (shared design tokens) + `app.js` (~110 lines) +
+A static page (GitHub Pages root): `index.html` + `app.css` (shared design tokens) + `app.js` +
 `demo-data.js` (four fictional companies in the export shape). No framework, no build step, no CDN scripts;
 the charts are hand-drawn SVG. `docs/check-web.mjs` runs in CI.
 
@@ -349,8 +350,8 @@ The previous React/Recharts `dashboard.jsx` was removed in favour of this folder
 ### Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/earnings-call-sentiment.git
-cd earnings-call-sentiment
+git clone https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser.git
+cd Earnings-Call-Sentiment-Analyser
 
 # Set up environment
 python -m venv .venv
@@ -401,15 +402,7 @@ python -m src.export_dashboard signals.csv -o dashboard_data.json
 
 Open `docs/index.html` (or the GitHub Pages site), click **Load JSON** and pick `dashboard_data.json`.
 
-<!-- the paragraphs below predate the static dashboard -->
-
-The fastest way: open [claude.ai](https://claude.ai), paste the contents
-the static dashboard in `docs/`, then click the **Load JSON** button
-at the top right and select your `dashboard_data.json`.
-
-For a more permanent setup, host `docs/` anywhere static (GitHub Pages does it here); there is no build step
-project as a component. Imports are standard (React, recharts,
-lucide-react).
+`docs/` is plain static files: host it anywhere static (GitHub Pages does it here); there is no build step.
 
 ### Smaller / cheaper test run
 
@@ -485,7 +478,7 @@ python -m src.cli --tickers NVDA,INTC --quarters ... \
 |---|---|---|
 | `FMP_API_KEY not set in env` | `.env` not loaded or empty | Check the file is in the repo root and `LLM_PROVIDER`, `FMP_API_KEY` are filled in. |
 | `No transcript found for X Q2 2025` | FMP doesn't have it (small-cap or too recent) | Try a different ticker or quarter. Free tier is also rate-limited. |
-| All rows skipped with errors | Usually wrong API key | Check stdout — each error prints `{ticker} {quarter}: {ErrorType}: {message}`. |
+| All rows skipped with errors | Usually wrong API key | Check stdout — each error prints `{ticker} Q{quarter} {year}: {ErrorType}: {message}`. An FMP error never carries the key (a URL in it reads `apikey=***`). |
 | Dashboard says "Invalid JSON: missing 'eps_surprise'" | Pipeline run didn't complete for some calls | Re-run those rows or remove them from the CSV before exporting. |
 | Cache feels stale after editing the prompt | It shouldn't — prompt is in cache key | If genuinely stuck, `rm -rf cache/llm/`. |
 | Returns look way too positive/negative | EPS-surprise control is off | `gamma` in `compute_reaction` may not match your tickers. Try `gamma=1.0` or fit per-ticker. |
@@ -515,7 +508,3 @@ upfront about:
 These aren't reasons not to do the project — they're the reasons it's
 *honest* about what it shows. Calling them out is itself a signal of
 research maturity.
-
----
-
-*Last updated: 2026-05-04*

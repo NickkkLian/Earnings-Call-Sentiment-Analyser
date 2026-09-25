@@ -1,5 +1,6 @@
 /* demo-data.js — SYNTHETIC demo data for the dashboard: four fictional companies, invented tickers, illustrative numbers
-   in the exact shape src/export_dashboard.py emits. No real company, executive or quote appears here. Replace at runtime with
+   in the exact shape src/export_dashboard.py emits. The quotes are invented as well, but the call dates are taken from
+   the real earnings calendars of four large US companies (4 of the 32 fall a week later). Replace at runtime with
    "Load JSON" using a file produced by the pipeline. */
 window.CALLDELTA_DEMO = {
  "NWSC": {
