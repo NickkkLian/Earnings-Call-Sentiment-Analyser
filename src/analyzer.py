@@ -49,8 +49,7 @@ Notable passages: extract 2–4 short, exemplary quotes. Tag each:
   - admission:    management acknowledged a problem or shortfall
   - contradiction: management framing conflicts with prior quarter or filings
 
-Be conservative. If you would only weakly assign a tag, omit the passage.
-Return strictly valid JSON conforming to the provided schema."""
+Be conservative. If you would only weakly assign a tag, omit the passage."""
 
 
 def _user_prompt(section: Literal["prepared", "qa"], text: str,
