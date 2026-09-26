@@ -52,6 +52,7 @@ check('real quotes: at most 4 per company, each at most 25 words', Object.values
 check('the page opens on the real data and Sample JSON downloads the synthetic file, named as such', /const S = \{ data: REAL,/.test(app) && /JSON\.stringify\(DEMO, null, 2\)[\s\S]{0,120}dashboard_sample_synthetic\.json/.test(app) && !/fictional companies/.test(html.split('<footer')[0]));
 check('a topic one section did not discuss is flagged, so the page shows a dash instead of a 0.00 tone', Object.values(real).every(c => c.topics.every(t => (t.mgmt_missing === true) + (t.qa_missing === true) < 2)) && /t\.qa_missing === true \? h\('span', \{ class: 'muted'/.test(app));
 check('with fewer than 30 calls the correlation is labelled as too few points for a finding', /qs\.length < 30 \? ` — far too few points for r to show a relationship/.test(app));
+check('the residual axis picks its step so it draws at most about six gridlines', /step = \[0\.01, 0\.02, 0\.05, 0\.1, 0\.2, 0\.25, 0\.5, 1, 2, 5\]\.find\(s => \(ymax - ymin\) \/ s <= 6\)/.test(app));
 check('pearson([1,2,3],[2,4,6]) = 1 and < 3 points → null', Math.abs(ctx.__p([1, 2, 3], [2, 4, 6]) - 1) < 1e-12 && ctx.__p([1, 2], [1, 2]) === null);
 console.log(`check-web · ${new Date().toISOString()} · node ${process.version}`);
 for (const [st, name, d] of results) console.log(`${st}  ${name}${d ? '  · ' + d : ''}`);

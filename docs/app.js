@@ -57,7 +57,9 @@ function scatter(quarters) {
   const xs = quarters.map(q => q.mgmt - q.qa), ys = quarters.map(q => q.residual_5d);
   const xmin = Math.min(0, ...xs) - 0.05, xmax = Math.max(0, ...xs) + 0.05, ymin = Math.min(0, ...ys) - 0.02, ymax = Math.max(0, ...ys) + 0.02;
   const x = v => L + (v - xmin) / (xmax - xmin) * (W - L - R), y = v => T + (1 - (v - ymin) / (ymax - ymin)) * (H - T - B);
-  const yt = [], step = (ymax - ymin) > 0.2 ? 0.05 : 0.02; for (let v = Math.ceil(ymin / step) * step; v <= ymax + 1e-9; v += step) yt.push(+v.toFixed(3));
+  // about five labelled gridlines whatever the range (a fixed 5 pp step drew dozens of overlapping labels once real
+  // residuals spanned more than 100%)
+  const yt = [], step = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5].find(s => (ymax - ymin) / s <= 6) || 10; for (let v = Math.ceil(ymin / step) * step; v <= ymax + 1e-9; v += step) yt.push(+v.toFixed(3));
   return h('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Sentiment gap versus 5-day residual return, one point per call' },
     yt.map(v => [h('line', { class: 'grid', x1: L, x2: W - R, y1: y(v), y2: y(v) }), h('text', { x: L - 6, y: y(v) + 3, 'text-anchor': 'end' }, `${(v * 100).toFixed(0)}%`)]),
     h('line', { class: 'zero', x1: L, x2: W - R, y1: y(0), y2: y(0) }), h('line', { class: 'zero', y1: T, y2: H - B, x1: x(0), x2: x(0) }),
