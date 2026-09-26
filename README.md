@@ -6,7 +6,7 @@
 
 An earnings call has two halves: what management chose to say, and what analysts made them answer. CallDelta scores each half separately with a fixed extraction schema, tracks the *gap* between them across quarters, and correlates it with the post-call return **after** removing the sector move and the EPS surprise — the part of the price reaction that the words, not the numbers, might explain.
 
-> Research tooling, not a trading signal. The dashboard opens on **one real run: the most recent earnings call of Microsoft (FY26 Q4), Alphabet (Q2 2026) and Meta (Q2 2026)**, scored by `claude-sonnet-5` on 2026-09-25 from the transcripts each company publishes on its own investor-relations site. One quarter per company is not a sample: there is no trend and no correlation in it yet.
+> Research tooling, not a trading signal. The dashboard opens on **one real run: the four most recent earnings calls of Microsoft (FY26 Q1–Q4), Alphabet and Meta (Q3 2025–Q2 2026)**, twelve calls scored by `claude-sonnet-5` on 2026-09-25 from the transcripts each company publishes on its own investor-relations site. Four points per company show how the scores moved; they are far too few to show whether tone predicts returns, and the page says so next to the correlation.
 
 [![Check](https://img.shields.io/github/actions/workflow/status/NickkkLian/Earnings-Call-Sentiment-Analyser/check.yml?branch=main&label=check&style=flat-square&labelColor=2f5859)](https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser/actions/workflows/check.yml)
 
@@ -14,9 +14,9 @@ An earnings call has two halves: what management chose to say, and what analysts
 
 ## Try it
 
-**In the browser** — open the [dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/) (static, no server) or `docs/index.html` from a clone. It opens on the three real calls above, with a link to each company's transcript page; **Load JSON** (or drag a file onto the page) replaces them with your own pipeline output, validated for shape first; **Sample JSON** (under the schema in the Methodology section) downloads a **synthetic** example file (fictional companies, invented numbers) so you can see the schema.
+**In the browser** — open the [dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/) (static, no server) or `docs/index.html` from a clone. It opens on the twelve real calls above, with a link to each call's transcript page; **Load JSON** (or drag a file onto the page) replaces them with your own pipeline output, validated for shape first; **Sample JSON** (under the schema in the Methodology section) downloads a **synthetic** example file (fictional companies, invented numbers) so you can see the schema.
 
-**What the real data contains.** Scores for the prepared remarks and for the analyst Q&A, topics, EPS surprise and the 5-day returns (EPS estimates and prices from Yahoo Finance via yfinance). Quotes come only from the prepared remarks: at most 25 words each, checked word for word against the transcript, a passage with an elision or a mid-sentence fragment dropped. Analyst questions are scored but never quoted, and no analyst is named. Alphabet's quarter carries a caveat on the page: its reported EPS includes unrealized gains on equity securities (said on the call), so the EPS-surprise control makes its residual meaningless.
+**What the real data contains.** Scores for the prepared remarks and for the analyst Q&A, topics, EPS surprise and the 5-day returns (EPS estimates and prices from Yahoo Finance via yfinance). Quotes come only from the prepared remarks of each company's latest call: at most 25 words each, checked word for word against the transcript, a passage with an elision or a mid-sentence fragment dropped. Analyst questions are scored but never quoted, and no analyst is named. Two companies carry a caveat on the page, taken from what they said on the calls: Alphabet's EPS in Q3 2025, Q1 2026 and Q2 2026 includes unrealized gains on equity securities, and Meta's includes a one-time tax charge (Q3 2025) and a tax benefit (Q1 2026). In those quarters the EPS-surprise control swamps the residual, so those residuals are not meaningful.
 
 **Re-run it** — `data/ir-calls.json` lists each call's transcript URL and the SHA-256 of the file that was scored (Word files are read with the standard library, PDFs with `pdfminer.six`, MIT-licensed):
 
@@ -24,7 +24,7 @@ An earnings call has two halves: what management chose to say, and what analysts
 python -m src.ir_run --max-usd 3   # needs ANTHROPIC_API_KEY; stops before the estimated spend passes the cap
 ```
 
-The scoring of these three calls cost about US$0.20 per run (roughly 67,000 input and 7,000 output tokens at US$2 / US$10 per million); the Alphabet and Meta calls were scored again on 2026-09-25 after the PDF reader changed to `pdfminer.six`.
+Scoring the twelve calls took 24 requests on 2026-09-25: about 256,000 input and 26,000 output tokens, roughly US$0.78 at US$2 / US$10 per million (20 requests in the final run, plus 4 for the two July PDF calls after the PDF reader changed to `pdfminer.six`).
 
 **Run the pipeline** — Python 3.10+; keys go in `.env`, never in the repo.
 

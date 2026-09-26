@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script>/* appearance boot — runs before any stylesheet so the stored palette and light/dark apply on the first paint */(function(){try{var d=document.documentElement,L=window.localStorage,t=L.getItem('nl-theme'),s=L.getItem('nl-scheme');if(s===null){var o=L.getItem('theme')||L.getItem('qm-theme');if(o==='dark'||o==='light')s=o;}if(t==='paper'||t==='ink')d.setAttribute('data-theme',t);if(s==='dark'||s==='light')d.setAttribute('data-scheme',s);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Call tone vs. analyst pushback — not a trading signal. CallDelta scores earnings calls with structured LLM output and tracks the gap against residual returns. Opens on real model output for three recent earnings calls (Microsoft, Alphabet, Meta), scored from the companies' own transcripts; load your own pipeline JSON.">
+<meta name="description" content="Call tone vs. analyst pushback — not a trading signal. CallDelta scores earnings calls with structured LLM output and tracks the gap against residual returns. Opens on real model output for twelve recent earnings calls (four each for Microsoft, Alphabet and Meta), scored from the companies' own transcripts; load your own pipeline JSON.">
 <meta name="theme-color" content="#f7e9e8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#130e15" media="(prefers-color-scheme: dark)">
 <title>CallDelta</title>
@@ -23,7 +23,7 @@
     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="19" height="19" rx="5" stroke="currentColor" stroke-width="2"/><rect x="14" y="6" width="4" height="4" rx="1" fill="var(--point)"/><path d="M6 17l3.5-3.5 3 2.5 5.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <b>CallDelta</b><span>Earnings-call tone vs. analyst pushback — a correlation, not a trading signal.</span>
   </a>
-  <span class="pill" id="pill" title="Model output for three real earnings calls, scored from the companies' own transcripts. Load a JSON file from the pipeline to replace it."><span id="pill-short">Real calls</span><span class="long" id="pill-long"></span></span>
+  <span class="pill" id="pill" title="Model output for twelve real earnings calls, scored from the companies' own transcripts. Load a JSON file from the pipeline to replace it."><span id="pill-short">Real calls</span><span class="long" id="pill-long"></span></span>
   <span class="spacer"></span>
   <button class="btn btn-primary" id="load">Load JSON</button>
   <button class="btn btn-ghost" id="reset" hidden>Back to real calls</button>
@@ -35,7 +35,7 @@
 <main class="wrap" id="main" tabindex="-1"></main>
 <footer class="honest">
   <dl class="honest-in">
-    <div><dt>About this data</dt><dd>One run of the pipeline on the most recent call of three companies that publish full transcripts on their own investor-relations sites: Microsoft FY26 Q4, Alphabet Q2 2026 and Meta Q2 2026, all held in July 2026. Scores by claude-sonnet-5, run 2026-09-25; EPS estimates and prices from Yahoo Finance. Quotes come only from the prepared remarks and are checked word for word against the transcript. One quarter per company, so there is no trend and no correlation yet. The Sample JSON file is synthetic.</dd></div>
+    <div><dt>About this data</dt><dd>One run of the pipeline on the four most recent calls of three companies that publish full transcripts on their own investor-relations sites: Microsoft FY26 Q1–Q4, Alphabet and Meta Q3 2025–Q2 2026 (calls from October 2025 to July 2026). Scores by claude-sonnet-5, run 2026-09-25; EPS estimates and prices from Yahoo Finance. Quotes come only from the latest call's prepared remarks and are checked word for word against the transcript. Four quarters per company show how the scores moved, but four points are far too few to support any claim that tone predicts returns. The Sample JSON file is synthetic.</dd></div>
     <div><dt>Not verified here</dt><dd>Whether the framing gap predicts residual returns (a few hundred calls would still be a small sample); the EPS-surprise control uses a constant γ; sector proxies are ETFs, not a factor model; loaded files are validated for shape, not for correctness.</dd></div>
     <div><dt>Source</dt><dd><a href="https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser" rel="noopener">github.com/NickkkLian/Earnings-Call-Sentiment-Analyser</a> · MIT · built by Nick Lian</dd></div>
   </dl>

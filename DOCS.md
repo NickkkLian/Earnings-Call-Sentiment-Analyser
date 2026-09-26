@@ -324,7 +324,7 @@ it. Deliberately thin — most logic lives in the tested modules.
 ### Folder: `docs/`
 
 A static page (GitHub Pages root): `index.html` + `app.css` (shared design tokens) + `app.js` +
-`real-data.js` (the default view: real model output for three July 2026 calls, written by `python -m src.ir_run`) +
+`real-data.js` (the default view: real model output for twelve calls, four per company, written by `python -m src.ir_run`) +
 `demo-data.js` (four fictional companies in the export shape, used only as the Sample JSON download). No framework,
 no build step, no CDN scripts;
 the charts are hand-drawn SVG. `docs/check-web.mjs` runs in CI.
