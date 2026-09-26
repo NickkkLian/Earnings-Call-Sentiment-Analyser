@@ -18,13 +18,13 @@ An earnings call has two halves: what management chose to say, and what analysts
 
 **What the real data contains.** Scores for the prepared remarks and for the analyst Q&A, topics, EPS surprise and the 5-day returns (EPS estimates and prices from Yahoo Finance via yfinance). Quotes come only from the prepared remarks: at most 25 words each, checked word for word against the transcript, a passage with an elision or a mid-sentence fragment dropped. Analyst questions are scored but never quoted, and no analyst is named. Alphabet's quarter carries a caveat on the page: its reported EPS includes unrealized gains on equity securities (said on the call), so the EPS-surprise control makes its residual meaningless.
 
-**Re-run it** — `data/ir-calls.json` lists each call's transcript URL and the SHA-256 of the file that was scored:
+**Re-run it** — `data/ir-calls.json` lists each call's transcript URL and the SHA-256 of the file that was scored (Word files are read with the standard library, PDFs with `pdfminer.six`, MIT-licensed):
 
 ```bash
 python -m src.ir_run --max-usd 3   # needs ANTHROPIC_API_KEY; stops before the estimated spend passes the cap
 ```
 
-The 2026-09-25 run: 6 requests, 66,805 input and 6,634 output tokens, about US$0.20 at US$2 / US$10 per million tokens.
+The scoring of these three calls cost about US$0.20 per run (roughly 67,000 input and 7,000 output tokens at US$2 / US$10 per million); the Alphabet and Meta calls were scored again on 2026-09-25 after the PDF reader changed to `pdfminer.six`.
 
 **Run the pipeline** — Python 3.10+; keys go in `.env`, never in the repo.
 

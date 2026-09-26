@@ -57,8 +57,8 @@ def to_text(raw: bytes, fmt: str) -> str:
         paras = ("".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", p)) for p in re.findall(r"<w:p[ >].*?</w:p>", xml, re.S))
         return "\n".join(html.unescape(p).strip() for p in paras if p.strip())
     if fmt == "pdf":
-        import fitz  # PyMuPDF
-        return "\n".join(page.get_text() for page in fitz.open(stream=raw, filetype="pdf"))
+        from pdfminer.high_level import extract_text  # pdfminer.six (MIT)
+        return extract_text(io.BytesIO(raw))
     raise ValueError(f"unknown transcript format {fmt!r}")
 
 
@@ -81,12 +81,19 @@ def main(argv=None):
     manifest = json.loads(Path(args.manifest).read_text())
     analyzer = make_analyzer(provider="anthropic", model=args.model, cache_dir=args.cache_dir, structured="json")
     rows, prepared_text, meta_calls = [], {}, []
-    # one call is about two model requests of ≤ 16k output tokens each (plus a possible repair round)
-    per_call_worst = 2 * 16000 / 1e6 * PRICES[args.model][1]
+    # Spending guard, checked before every request (cached answers cost nothing and are not checked): stop if the spend
+    # so far plus the worst case of this request (its max_tokens all used, input at ~3 characters per token) could pass
+    # the cap.
+    complete = llm.complete
+
+    def guarded(cfg, system, user, max_tokens=2048, **kw):
+        _, _, usd = spent_usd(args.model)
+        worst = max_tokens / 1e6 * PRICES[args.model][1] + (len(system) + len(user)) / 3 / 1e6 * PRICES[args.model][0]
+        if usd + worst > args.max_usd:
+            raise SystemExit(f"stopping: ${usd:.3f} spent, the next request could pass ${args.max_usd}")
+        return complete(cfg, system, user, max_tokens=max_tokens, **kw)
+    llm.complete = guarded
     for c in manifest["calls"]:
-        tin, tout, usd = spent_usd(args.model)
-        if usd + per_call_worst > args.max_usd:
-            raise SystemExit(f"stopping before {c['ticker']}: ${usd:.2f} spent, the next call could pass ${args.max_usd}")
         raw = fetch(c["source_url"], Path(args.cache_dir) / "ir" / f"{c['ticker']}.{c['format']}", c.get("sha256"))
         text = to_text(raw, c["format"])
         prepared, qa = split_prepared_qa(text)

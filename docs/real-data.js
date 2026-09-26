@@ -120,9 +120,9 @@ window.CALLDELTA_REAL = {
     "label": "Q2 2026",
     "date": "2026-07-22",
     "mgmt": 0.75,
-    "qa": 0.35,
-    "hedging": 0.35,
-    "guidance": 0.62,
+    "qa": 0.5,
+    "hedging": 0.25,
+    "guidance": 0.68,
     "eps_surprise": 2.1413793103448273,
     "ret_5d": -0.01572680292551487,
     "sector_5d": 0.0028388386550022293,
@@ -131,46 +131,46 @@ window.CALLDELTA_REAL = {
   ],
   "topics": [
    {
-    "name": "Google Cloud growth & backlog",
+    "name": "Google Cloud & AI Infrastructure",
     "weight": 0.28,
     "mgmt": 0.85,
     "qa": 0.0,
     "qa_missing": true
    },
    {
-    "name": "AI Model Frontier Competition (Gemini)",
+    "name": "AI/Gemini model strategy & frontier competition",
     "weight": 0.28,
-    "mgmt": 0.0,
-    "qa": 0.5,
-    "mgmt_missing": true
-   },
-   {
-    "name": "CapEx & Capacity Constraints/TPU Allocation",
-    "weight": 0.27,
-    "mgmt": 0.0,
-    "qa": 0.15,
-    "mgmt_missing": true
-   },
-   {
-    "name": "AI models & infrastructure (Gemini, TPUs, CapEx)",
-    "weight": 0.25,
-    "mgmt": 0.7,
-    "qa": 0.0,
-    "qa_missing": true
-   },
-   {
-    "name": "Search & Ads monetization (AI Overviews/AI Mode)",
-    "weight": 0.22,
-    "mgmt": 0.7,
-    "qa": 0.0,
-    "qa_missing": true
-   },
-   {
-    "name": "Search & YouTube Monetization",
-    "weight": 0.18,
     "mgmt": 0.0,
     "qa": 0.6,
     "mgmt_missing": true
+   },
+   {
+    "name": "CapEx, capacity constraints & TPU strategy",
+    "weight": 0.27,
+    "mgmt": 0.0,
+    "qa": 0.35,
+    "mgmt_missing": true
+   },
+   {
+    "name": "Search & AI Overviews/Mode",
+    "weight": 0.22,
+    "mgmt": 0.8,
+    "qa": 0.0,
+    "qa_missing": true
+   },
+   {
+    "name": "YouTube & Advertising",
+    "weight": 0.18,
+    "mgmt": 0.7,
+    "qa": 0.0,
+    "qa_missing": true
+   },
+   {
+    "name": "CapEx & Margin/Cash Flow Outlook",
+    "weight": 0.18,
+    "mgmt": 0.1,
+    "qa": 0.0,
+    "qa_missing": true
    }
   ],
   "extracts": [
@@ -181,8 +181,8 @@ window.CALLDELTA_REAL = {
    },
    {
     "tag": "confident",
-    "speaker": "Sundar Pichai",
-    "text": "We have started our most ambitious pre‑training run yet for Gemini 4 and are excited by the progress we are seeing at the frontier."
+    "speaker": "Anat Ashkenazi",
+    "text": "We are updating our full year 2026 CapEx guidance range to $195‑205 billion, up from our previous estimate of $180‑190 billion."
    }
   ],
   "source_url": "https://s206.q4cdn.com/479360582/files/doc_events/2026/Jul/22/2026_Q2_Earnings_Transcript.pdf",
@@ -199,8 +199,8 @@ window.CALLDELTA_REAL = {
     "date": "2026-07-29",
     "mgmt": 0.55,
     "qa": 0.45,
-    "hedging": 0.45,
-    "guidance": 0.4,
+    "hedging": 0.42,
+    "guidance": 0.35,
     "eps_surprise": -0.1440443213296399,
     "ret_5d": 0.005396123194286284,
     "sector_5d": 0.012419002101415888,
@@ -209,46 +209,46 @@ window.CALLDELTA_REAL = {
   ],
   "topics": [
    {
-    "name": "AI-driven core business (recommendations & ads systems)",
-    "weight": 0.3,
-    "mgmt": 0.75,
-    "qa": 0.0,
-    "qa_missing": true
-   },
-   {
-    "name": "AI Lab Performance, Models & Open Source Strategy",
+    "name": "AI-driven core business & recommendations",
     "weight": 0.25,
-    "mgmt": 0.0,
-    "qa": 0.55,
-    "mgmt_missing": true
-   },
-   {
-    "name": "Infrastructure & capex strategy",
-    "weight": 0.2,
-    "mgmt": 0.25,
-    "qa": 0.0,
-    "qa_missing": true
-   },
-   {
-    "name": "New products, agents & subscriptions (Meta One, business agents, glasses)",
-    "weight": 0.2,
     "mgmt": 0.7,
     "qa": 0.0,
     "qa_missing": true
    },
    {
-    "name": "CapEx & Capital Planning (2027 outlook)",
-    "weight": 0.2,
+    "name": "CapEx & Capital Sources",
+    "weight": 0.22,
     "mgmt": 0.0,
     "qa": 0.2,
     "mgmt_missing": true
    },
    {
-    "name": "Financial results & guidance",
-    "weight": 0.15,
-    "mgmt": 0.35,
+    "name": "Ads monetization & advertiser tools",
+    "weight": 0.2,
+    "mgmt": 0.65,
     "qa": 0.0,
     "qa_missing": true
+   },
+   {
+    "name": "Infrastructure/Capex & compute strategy",
+    "weight": 0.2,
+    "mgmt": 0.3,
+    "qa": 0.0,
+    "qa_missing": true
+   },
+   {
+    "name": "AI Models/Research Lab & Open Source",
+    "weight": 0.2,
+    "mgmt": 0.0,
+    "qa": 0.55,
+    "mgmt_missing": true
+   },
+   {
+    "name": "Consumer AI/Personal Agents",
+    "weight": 0.17,
+    "mgmt": 0.0,
+    "qa": 0.55,
+    "mgmt_missing": true
    }
   ],
   "extracts": [
@@ -256,6 +256,11 @@ window.CALLDELTA_REAL = {
     "tag": "confident",
     "speaker": "Mark Zuckerberg",
     "text": "On a dollar basis, our ads business is reporting faster year-over-year revenue growth than any other company's reported ad business …"
+   },
+   {
+    "tag": "confident",
+    "speaker": "Mark Zuckerberg",
+    "text": "Early sales have been strong, exceeding our expectations."
    }
   ],
   "source_url": "https://s21.q4cdn.com/399680738/files/doc_financials/2026/q2/META-Q2-2026-Earnings-Call-Transcript.pdf"
