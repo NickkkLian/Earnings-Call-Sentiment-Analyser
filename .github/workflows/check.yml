@@ -12,8 +12,8 @@ jobs:
         python: ['3.10', '3.13']
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -24,8 +24,8 @@ jobs:
     # The score itself only runs once eval/llm-cache.json exists (populated by `python -m src.eval --llm` with a key).
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
           cache: pip
@@ -38,8 +38,8 @@ jobs:
     # loader's own rules, and that a mutated file is rejected.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - run: node docs/check-web.mjs
