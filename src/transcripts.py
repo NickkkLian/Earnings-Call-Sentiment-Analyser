@@ -68,9 +68,15 @@ QA_MARKERS = [
 QA_RE = re.compile("|".join(QA_MARKERS), re.IGNORECASE)
 
 
+# The operator's opening often announces the Q&A before the prepared remarks start ("After the speaker presentations,
+# there will be a question-and-answer session"). A marker in that future-tense announcement is not the hand-off.
+ANNOUNCEMENT_RE = re.compile(r"there\s+will\s+be\s+(a\s+)?$", re.IGNORECASE)
+
+
 def split_prepared_qa(content: str) -> tuple[str, str]:
     """Return (prepared_text, qa_text). If no Q&A marker found, treat all as prepared."""
-    match = QA_RE.search(content)
+    match = next((m for m in QA_RE.finditer(content)
+                  if not ANNOUNCEMENT_RE.search(content[max(0, m.start() - 40):m.start()])), None)
     if not match:
         return content.strip(), ""
     cut = match.start()

@@ -128,7 +128,7 @@ def test_cache_hit_makes_no_call_and_is_keyed_by_provider_and_mode(base, tmp_pat
 
 
 def test_defaults_and_errors(tmp_path):
-    assert A.make_analyzer(env={"ANTHROPIC_API_KEY": "k"}, cache_dir=str(tmp_path)).inner.model == "claude-haiku-4-5-20251001"
+    assert A.make_analyzer(env={"ANTHROPIC_API_KEY": "k"}, cache_dir=str(tmp_path)).inner.model == "claude-sonnet-5"
     assert A.make_analyzer(provider="openai", env={"OPENAI_API_KEY": "k", "OPENAI_MODEL": "x"}, cache_dir=str(tmp_path)).inner.model == "x"
     assert A.make_analyzer(provider="openai", env={"OPENAI_API_KEY": "k", "OPENAI_MODEL": "x", "LLM_MODEL": "y"}, cache_dir=str(tmp_path)).inner.model == "y"
     with pytest.raises(llm.ConfigError, match="LLM_MODEL is required for gemini"):

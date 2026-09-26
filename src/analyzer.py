@@ -106,7 +106,8 @@ class JsonAnalyzer:
 
     def _ask(self, user: str) -> str:
         self.calls += 1
-        text, _model = llm.complete(self.cfg, self.system, user, max_tokens=4000, opener=self.opener)
+        # 16000: on Claude Sonnet 5 thinking is on by default and counts toward max_tokens
+        text, _model = llm.complete(self.cfg, self.system, user, max_tokens=16000, opener=self.opener)
         return text
 
     def analyze_section(self, *, ticker, quarter_label, section, text):
@@ -139,13 +140,14 @@ class JsonAnalyzer:
 # =========================================================================
 
 class AnthropicAnalyzer:
-    def __init__(self, model: str = "claude-haiku-4-5-20251001", api_key: str | None = None):
+    def __init__(self, model: str = "claude-sonnet-5", api_key: str | None = None):
         from anthropic import Anthropic
         self.client = Anthropic(api_key=api_key or os.environ["ANTHROPIC_API_KEY"])
         self.model = model
 
     def analyze_section(self, *, ticker, quarter_label, section, text):
-        # Use tool use to force structured output
+        # Tool use carries the schema. Claude Sonnet 5 and Opus 5.5 reject a forced tool_choice, so the tool is offered
+        # with tool_choice auto and the prompt asks for it; a reply without the tool call is an error.
         tool = {
             "name": "submit_analysis",
             "description": "Submit the structured earnings call section analysis.",
@@ -153,15 +155,19 @@ class AnthropicAnalyzer:
         }
         resp = self.client.messages.create(
             model=self.model,
-            max_tokens=4000,
-            system=SYSTEM_PROMPT,
+            max_tokens=16000,   # thinking is on by default on Sonnet 5 and counts toward max_tokens
+            system=SYSTEM_PROMPT + "\n\nSubmit your analysis by calling the submit_analysis tool exactly once.",
             tools=[tool],
-            tool_choice={"type": "tool", "name": "submit_analysis"},
+            tool_choice={"type": "auto"},
             messages=[{
                 "role": "user",
                 "content": _user_prompt(section, text, ticker, quarter_label),
             }],
         )
+        if resp.stop_reason == "refusal":
+            raise RuntimeError("Anthropic declined the request (stop_reason=refusal)")
+        if resp.stop_reason == "max_tokens":
+            raise RuntimeError("Anthropic reply hit max_tokens before the tool call finished")
         for block in resp.content:
             if block.type == "tool_use" and block.name == "submit_analysis":
                 return SectionAnalysis.model_validate(block.input)
@@ -241,7 +247,7 @@ class CachedAnalyzer:
 # Factory + full-call convenience
 # =========================================================================
 
-NATIVE_DEFAULT_MODEL = {"anthropic": "claude-haiku-4-5-20251001", "openai": "gpt-4o-mini"}
+NATIVE_DEFAULT_MODEL = {"anthropic": "claude-sonnet-5", "openai": "gpt-4o-mini"}
 
 
 def make_analyzer(provider: str | None = None, model: str | None = None,
@@ -250,7 +256,8 @@ def make_analyzer(provider: str | None = None, model: str | None = None,
     """Build the analyzer for a provider.
 
     provider    anthropic (default) | openai | gemini | openai-compatible      — or LLM_PROVIDER
-    model       explicit > LLM_MODEL > ANTHROPIC_MODEL / OPENAI_MODEL > the historical defaults for those two.
+    model       explicit > LLM_MODEL > ANTHROPIC_MODEL / OPENAI_MODEL > the defaults for those two
+                (claude-sonnet-5, gpt-4o-mini).
                 Gemini and OpenAI-compatible have no default: name a model.
     structured  json (default, model-agnostic) | native (Anthropic tool use / OpenAI structured outputs only)
     base_url    LLM_BASE_URL; required for openai-compatible

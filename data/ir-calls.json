@@ -1,0 +1,21 @@
+{
+ "note": "Most recent quarter per company as of 2026-09-25. Each transcript is the company's own, from its investor-relations site. sha256 is of the file that was scored.",
+ "calls": [
+  {"ticker": "MSFT", "company": "Microsoft Corporation", "year": 2026, "quarter": 4, "label": "FY26 Q4",
+   "call_date": "2026-07-29", "format": "docx",
+   "source_page": "https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q4",
+   "source_url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/TranscriptFY26Q4.docx",
+   "sha256": "b1ba4245f1940a27b58c80f7c085473b6790007aa563347756268455aeb779ae"},
+  {"ticker": "GOOGL", "company": "Alphabet Inc.", "year": 2026, "quarter": 2, "label": "Q2 26",
+   "call_date": "2026-07-22", "format": "pdf",
+   "note": "Alphabet said on the call that its net income and EPS rose mainly because of unrealized gains on equity securities. The EPS estimate did not include them, so the EPS-surprise control (1.5 × +214%) swamps this residual: read it as not meaningful.",
+   "source_page": "https://abc.xyz/investor/events/event-details/2026/2026-Q2-Earnings-Call-2026-GgTAq7Is0z/default.aspx",
+   "source_url": "https://s206.q4cdn.com/479360582/files/doc_events/2026/Jul/22/2026_Q2_Earnings_Transcript.pdf",
+   "sha256": "de938411f77818b147ff51d8ca2f70081f9a44401d396f1779ab5b5adfbd9123"},
+  {"ticker": "META", "company": "Meta Platforms, Inc.", "year": 2026, "quarter": 2, "label": "Q2 26",
+   "call_date": "2026-07-29", "format": "pdf",
+   "source_page": "https://investor.atmeta.com/investor-events/default.aspx",
+   "source_url": "https://s21.q4cdn.com/399680738/files/doc_financials/2026/q2/META-Q2-2026-Earnings-Call-Transcript.pdf",
+   "sha256": "e2afcb9b452656bea2706e1dedc190d31b3aafe5528af7f3c19de6ab347a34ec"}
+ ]
+}

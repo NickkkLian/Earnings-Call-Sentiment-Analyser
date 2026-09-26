@@ -110,9 +110,64 @@ SECTOR_NAMES: dict[str, str] = {
 }
 
 
-def export(df: pd.DataFrame, out_path: str | Path = "dashboard_data.json") -> dict:
+def _norm_quote(s: str) -> str:
+    """Lower-case, straight quotes, plain hyphens, single spaces: for checking that a quote is verbatim."""
+    s = s.replace("\u2019", "'").replace("\u2018", "'").replace("\u201c", '"').replace("\u201d", '"')
+    s = s.replace("\u2011", "-").replace("\u2010", "-").replace("\u2013", "-").replace("\u2014", "-")
+    s = re.sub(r"(\w-)\s+(?=\w)", r"\1", s)   # a PDF line break after a hyphen ("year-over-\nyear") is not a space
+    return re.sub(r"\s+", " ", s).strip().lower()
+
+
+def select_extracts(prepared: list[dict], qa: list[dict], sections=("qa", "prepared"), max_words=None,
+                    verbatim_in: str | None = None, limit=4) -> list[dict]:
+    """The passages the dashboard shows: evasion / admission first, then the rest by tag priority.
+
+    sections     which parts of the call quotes may come from; ("prepared",) keeps analyst Q&A out of the file
+    max_words    passages longer than this are trimmed to whole sentences or a first clause, or dropped
+    verbatim_in  drop passages that do not appear word for word in this text (a paraphrase is not a quote)
+    """
+    pool = (qa if "qa" in sections else []) + (prepared if "prepared" in sections else [])
+    if max_words is None and verbatim_in is None:
+        return sorted(pool, key=lambda e: _PRIORITY.get(e.get("tag", ""), 99))[:limit]
+    hay = _norm_quote(verbatim_in) if verbatim_in is not None else None
+
+    def fit(e):
+        """A publishable quote: one contiguous piece of the source, starting where a sentence starts. Over the word
+        limit it keeps its leading whole sentences, or else its first clause (before ';' or a dash) marked with '…'.
+        A passage with an elision ('...') is two pieces glued together and is dropped, as is a mid-sentence fragment."""
+        text = e.get("text", "").strip()
+        if "..." in text or "\u2026" in text or not text or not (text[0].isupper() or text[0].isdigit()):
+            return None
+        core, trimmed = text, False
+        if max_words is not None and len(text.split()) > max_words:
+            kept = []
+            for sent in re.split(r"(?<=[.!?])\s+", text):
+                if len(" ".join(kept + [sent]).split()) > max_words:
+                    break
+                kept.append(sent)
+            if kept:
+                core = " ".join(kept)
+            else:
+                clause = re.split(r"\s*(?:;|\s--\s|\s\u2014\s|\s\u2013\s)\s*", text)[0].rstrip(",")
+                if clause == text or len(clause.split()) > max_words:
+                    return None
+                core, trimmed = clause, True
+        if hay is not None and _norm_quote(core.strip(" .\"'")) not in hay:
+            return None
+        return {**e, "text": core + (" \u2026" if trimmed else "")}
+
+    pool = [f for f in map(fit, pool) if f]
+    return sorted(pool, key=lambda e: _PRIORITY.get(e.get("tag", ""), 99))[:limit]
+
+
+_PRIORITY = {"evasion": 0, "admission": 1, "contradiction": 2, "hedging": 3, "confident": 4}
+
+
+def export(df: pd.DataFrame, out_path: str | Path = "dashboard_data.json", extract_sections=("qa", "prepared"),
+           max_quote_words=None, verbatim_in: dict | None = None) -> dict:
     """Produce dashboard JSON from a pipeline DataFrame. Returns the dict and writes to disk.
 
+    extract_sections / max_quote_words / verbatim_in are passed to select_extracts (verbatim_in maps ticker → text).
     Rows with NaN in any numeric field needed by the dashboard are dropped — JSON
     cannot represent NaN (json.dumps(NaN) emits the literal `NaN`, which JS
     JSON.parse rejects). Rather than coercing NaN → 0 (which would silently
@@ -165,13 +220,9 @@ def export(df: pd.DataFrame, out_path: str | Path = "dashboard_data.json") -> di
 
         # Pull the most informative extracts: prefer evasion / admission
         # tags from Q&A, then confident from prepared.
-        all_extracts = (
-            _coerce_listcell(latest["extracts_qa"])
-            + _coerce_listcell(latest["extracts_prepared"])
-        )
-        priority = {"evasion": 0, "admission": 1, "contradiction": 2, "hedging": 3, "confident": 4}
-        all_extracts.sort(key=lambda e: priority.get(e.get("tag", ""), 99))
-        extracts = all_extracts[:4]
+        extracts = select_extracts(_coerce_listcell(latest["extracts_prepared"]), _coerce_listcell(latest["extracts_qa"]),
+                                   sections=extract_sections, max_words=max_quote_words,
+                                   verbatim_in=(verbatim_in or {}).get(tk))
 
         proxy = SECTOR_PROXY.get(tk, "SPY")
         out[tk] = {

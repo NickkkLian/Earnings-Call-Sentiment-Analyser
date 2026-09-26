@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-22",
+  "generated": "2026-09-25",
   "guidance": {
     "g01": "raise",
     "g02": "raise",
@@ -12,7 +12,7 @@
     "g09": "raise",
     "g10": "lower"
   },
-  "model": "claude-haiku-4-5-20251001",
+  "model": "claude-sonnet-5",
   "passages": {
     "p01": "confident",
     "p02": "confident",

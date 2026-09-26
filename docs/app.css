@@ -387,3 +387,7 @@ table.data th.num button{justify-content:flex-end;width:100%}
 .cat{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-2)}
 .cat::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--brand-sage);flex:none}
 /* ===== end of family layer v3.1 ===== */
+/* real-data provenance line under the company tabs, and a per-company caveat under the reconciliation */
+.provenance{margin:0 0 var(--space-4);font-size:var(--text-xs);line-height:var(--leading-relaxed);color:var(--text-2);max-width:none}
+.provenance a{color:inherit}
+.company-note{flex-basis:100%;margin:var(--space-2) 0 0;padding:var(--space-2) var(--space-3);border-left:3px solid var(--warning);background:var(--warning-tint);color:var(--text);font-size:var(--text-xs);line-height:var(--leading-relaxed)}

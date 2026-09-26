@@ -65,3 +65,26 @@ def test_export_carries_the_parts_of_the_residual(tmp_path):
     assert abs(q["ret_5d"] - c["beta"] * q["sector_5d"] - c["gamma"] * q["eps_surprise"] - q["residual_5d"]) < 1e-12
     legacy = export(pd.DataFrame([_row("HRBS", "Q1 2025", "2025-05-28")]), tmp_path / "e.json")
     assert "sector_5d" not in legacy["HRBS"]["quarters"][0], "no sector_5d column → field omitted, the page shows 'not checkable'"
+
+
+def test_select_extracts_can_keep_only_short_verbatim_prepared_quotes():
+    from src.export_dashboard import select_extracts
+    prepared = [{"tag": "confident", "speaker": "CEO", "text": "We delivered \u201crecord\u201d revenue this quarter."},
+                {"tag": "hedging", "speaker": "CFO", "text": "We expect growth to moderate somewhat."},   # paraphrase
+                {"tag": "admission", "speaker": "CFO", "text": " ".join(["word"] * 26)}]                  # too long
+    qa = [{"tag": "evasion", "speaker": "Analyst", "text": "Can you break that out?"}]
+    source = 'Thanks. We delivered "record"   revenue this quarter. Growth may moderate. ' + " ".join(["word"] * 26)
+    out = select_extracts(prepared, qa, sections=("prepared",), max_words=25, verbatim_in=source)
+    assert [e["speaker"] for e in out] == ["CEO"]
+    long = [{"tag": "confident", "speaker": "CEO", "text": "Revenue grew. " + " ".join(["more"] * 30) + "."}]
+    cut = select_extracts(long, [], sections=("prepared",), max_words=25, verbatim_in="Revenue grew. " + " ".join(["more"] * 30))
+    assert [e["text"] for e in cut] == ["Revenue grew."], "an over-long passage keeps its leading sentences that fit"
+    glued = [{"tag": "admission", "speaker": "CFO", "text": "Expenses were $4 billion... including charges."},
+             {"tag": "admission", "speaker": "CFO", "text": "partially offset by charges."}]
+    assert select_extracts(glued, [], sections=("prepared",), max_words=25,
+                           verbatim_in="Expenses were $4 billion, including charges. Growth, partially offset by charges.") == [], \
+        "an elided passage and a mid-sentence fragment are not publishable quotes"
+    clause = [{"tag": "confident", "speaker": "CEO", "text": "Ads grew faster than ever -- " + " ".join(["so"] * 30) + "."}]
+    assert select_extracts(clause, [], sections=("prepared",), max_words=25, verbatim_in=clause[0]["text"])[0]["text"] \
+        == "Ads grew faster than ever \u2026"
+    assert select_extracts(prepared, qa)[0]["speaker"] == "Analyst", "the default still ranks Q&A evasion first"

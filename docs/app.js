@@ -1,8 +1,9 @@
-/* app.js — CallDelta dashboard. Renders the JSON shape produced by src/export_dashboard.py; ships with fictional demo data.
+/* app.js — CallDelta dashboard. Renders the JSON shape produced by src/export_dashboard.py. Opens on real model output for
+   three earnings calls (real-data.js, written by src/ir_run.py); the synthetic demo file is only the Sample JSON download.
    No dependencies, no network requests (fonts aside). Charts are hand-drawn SVG. */
 (() => {
 'use strict';
-const DEMO = window.CALLDELTA_DEMO;
+const DEMO = window.CALLDELTA_DEMO, REAL = window.CALLDELTA_REAL, META = window.CALLDELTA_REAL_META;
 const SVG_TAGS = new Set(['svg', 'rect', 'line', 'text', 'defs', 'pattern', 'path', 'g', 'title', 'circle', 'polyline', 'polygon']);
 const $ = (s, r = document) => r.querySelector(s);
 const h = (tag, attrs = {}, ...kids) => { const el = SVG_TAGS.has(tag) ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (v === null || v === undefined || v === false) continue; if (k === 'class') el.setAttribute('class', v); else if (k === 'html') el.innerHTML = v; else if (k.startsWith('on')) el.addEventListener(k.slice(2), v); else el.setAttribute(k, v === true ? '' : v); } for (const kid of kids.flat(Infinity)) { if (kid === null || kid === undefined || kid === false) continue; el.append(kid.nodeType ? kid : document.createTextNode(String(kid))); } return el; };
@@ -35,7 +36,7 @@ function validate(obj) { // same rules the old React dashboard applied, plus num
 // an error toast that carries its fix as a button (`action`: { label, run }) stays until it is dismissed
 function toast(msg, kind, action) { const box = $('#toasts'); const el = h('div', { class: 'toast enter', role: kind === 'error' ? 'alert' : 'status' }, h('span', {}, msg), action ? h('button', { class: 'btn btn-sm', onclick: () => { if (action.focus) action.focus().focus(); el.remove(); action.run(); } }, action.label) : null, h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': 'Dismiss', onclick: () => el.remove() }, '×')); box.append(el); requestAnimationFrame(() => el.classList.remove('enter')); if (!action) setTimeout(() => el.remove(), kind === 'error' ? 8000 : 4000); }
 
-const S = { data: DEMO, custom: false, ticker: Object.keys(DEMO)[0], view: {} };
+const S = { data: REAL, custom: false, ticker: Object.keys(REAL)[0], view: {} };
 const esc = s => String(s ?? '');
 const fromHash = () => { try { return decodeURIComponent(location.hash.slice(1)); } catch (e) { return location.hash.slice(1); } };   // a stray % must not stop the page
 
@@ -63,6 +64,11 @@ function scatter(quarters) {
     quarters.map((q, i) => h('circle', { class: 'pt ' + (q.residual_5d > 0 ? 'up' : 'down'), cx: x(q.mgmt - q.qa), cy: y(q.residual_5d), r: 5, opacity: 0.45 + 0.55 * (i / Math.max(1, quarters.length - 1)) }, h('title', {}, `${q.label}: gap ${tone(q.mgmt - q.qa)}, residual ${pct(q.residual_5d)}, EPS surprise ${pct(q.eps_surprise)}`))),
     h('text', { x: (L + W - R) / 2, y: H - 8, 'text-anchor': 'middle' }, 'sentiment gap (management − analysts) →'),
     h('text', { x: 12, y: (T + H - B) / 2, transform: `rotate(-90 12 ${(T + H - B) / 2})`, 'text-anchor': 'middle' }, '5-day residual return'));
+}
+// What the default data is: which calls, where each transcript came from, which model scored it and when
+function provenance() {
+  const calls = META.calls.map((c, i) => [i ? ' · ' : '', h('a', { href: c.source_page, rel: 'noopener' }, `${c.company} ${c.label}`), ` (call ${c.call_date})`]);
+  return h('p', { class: 'provenance' }, h('b', {}, 'Real data: '), calls, `. Scored from each company's own transcript by ${META.model}, run ${META.run_date}. EPS estimates and prices: Yahoo Finance.`);
 }
 function pearson(xs, ys) { const n = xs.length; if (n < 3) return null; const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null; }
 
@@ -138,11 +144,13 @@ function renderPage() {
   const data = S.data, tickers = Object.keys(data); if (!data[S.ticker]) S.ticker = tickers[0];
   const c = data[S.ticker], qs = c.quarters, cur = qs[qs.length - 1], prev = qs[qs.length - 2] || cur;
   const calls = tickers.reduce((a, t) => a + data[t].quarters.length, 0);
-  $('#pill-long').textContent = S.custom ? ' · your file · loaded in this tab' : ' · synthetic data · fictional companies';
+  $('#pill-short').textContent = S.custom ? 'Your file' : 'Real calls';
+  $('#pill-long').textContent = S.custom ? ' · loaded in this tab' : ` · ${META.calls.length} calls · ${META.model} · run ${META.run_date}`;
   $('#reset').hidden = !S.custom;
   // the address always names the company on screen, so a reload or a shared link opens the same one
   if (fromHash() !== S.ticker) history.replaceState(null, '', '#' + encodeURIComponent(S.ticker));
   main.append(h('div', { class: 'ticker-tabs', role: 'tablist', 'aria-label': 'Companies' }, tickers.map(t => h('button', { role: 'tab', id: 'tab-' + t, 'aria-controls': 'ticker-panel', 'aria-selected': t === S.ticker ? 'true' : 'false', onclick: () => { if (t === S.ticker) return; S.ticker = t; history.pushState(null, '', '#' + encodeURIComponent(t)); render(); } }, t)), h('span', { class: 'meta' }, `${qs.length} quarters · ${tickers.length} tickers · ${calls} calls · `, recSummary(data, tickers, calls))));
+  if (!S.custom) main.append(provenance());
   const panel = h('div', { id: 'ticker-panel', role: 'tabpanel', 'aria-labelledby': 'tab-' + S.ticker }); main.append(panel);
   const gap = cur.mgmt - cur.qa, gapPrev = prev.mgmt - prev.qa, rec = reconcile(c, cur);
   panel.append(h('div', { class: 'company' }, h('div', {}, h('h1', {}, c.company), h('div', { class: 'sub' }, `${S.ticker} · ${c.sector} · latest call ${cur.date || cur.label}`)),
@@ -150,10 +158,11 @@ function renderPage() {
     rec.checkable
       ? h('div', { class: 'recon', role: 'note' }, `5-day return ${pct(cur.ret_5d)} = sector ${pct(rec.sectorPart)} (β ${rec.beta.toFixed(1)}) + surprise ${pct(rec.surprisePart)} (γ ${rec.gamma.toFixed(1)} × ${pct(cur.eps_surprise)}) + residual ${pct(cur.residual_5d)} `,
           rec.ok ? h('span', { class: 'ok' }, '✓ reconciles') : h('span', { class: 'bad' }, `✗ off by ${(Math.abs(rec.off) * 100).toFixed(2)} pp`))
-      : h('div', { class: 'recon unknown', role: 'note' }, `${rec.missing.join(' and ')} not in this file — residual not checkable`)));
+      : h('div', { class: 'recon unknown', role: 'note' }, `${rec.missing.join(' and ')} not in this file — residual not checkable`),
+    typeof c.note === 'string' && c.note ? h('p', { class: 'company-note', role: 'note' }, c.note) : null));
   // colour may repeat what a sign already says, never stand alone for good or bad: the strip's
   // unsigned figures and these deltas carry no colour classes
-  const delta = v => h('small', {}, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);
+  const delta = v => qs.length < 2 ? h('small', {}, 'one quarter') : h('small', {}, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);
   panel.append(h('div', { class: 'strip', role: 'group', 'aria-label': 'Current quarter signals' },
     h('div', {}, h('div', { class: 'lbl' }, 'Management tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.mgmt) }, tone(cur.mgmt)), delta(cur.mgmt - prev.mgmt))),
     h('div', {}, h('div', { class: 'lbl' }, 'Analyst Q&A tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.qa) }, tone(cur.qa)), delta(cur.qa - prev.qa))),
@@ -167,8 +176,8 @@ function renderPage() {
   const r = pearson(qs.map(q => q.mgmt - q.qa), qs.map(q => q.residual_5d));
   panel.append(h('div', { class: 'panels-2' },
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Sentiment gap vs residual return'), h('p', {}, `5-day post-call return after controlling for sector and EPS surprise · one point per call · Pearson r = ${r === null ? 'n/a' : r.toFixed(2)} (n = ${qs.length}, illustrative, not a signal)`)), scatter(qs), h('p', { class: 'hint', style: 'margin-top:8px' }, 'Quadrant of interest: wide gap and negative residual — management rosy, market unconvinced.')),
-    h('div', { class: 'card' }, h('h2', {}, 'Notable extracts'), h('p', { class: 'hint', style: 'margin-bottom:12px' }, `${cur.label} · passages the model tagged`), c.extracts.length ? c.extracts.map(e => h('div', { class: 'extract' }, h('div', {}, h('span', { class: 'cat' }, e.tag)), h('div', {}, h('q', {}, esc(e.text)), h('div', { class: 'who' }, '— ' + esc(e.speaker))))) : h('p', { class: 'muted' }, 'No extracts in this file.'))));
-  main.append(h('div', { class: 'card' }, h('h2', {}, 'Methodology'), h('div', { class: 'method' }, h('div', {}, h('p', {}, 'Each transcript is split into prepared remarks and analyst Q&A and scored separately by the model against a fixed JSON schema, written into the prompt and validated, with one repair round (Anthropic, OpenAI, Gemini or an OpenAI-compatible server; native structured output is an option for Anthropic and OpenAI). Tone, hedging density, guidance confidence, topics and tagged passages come back as structured fields, so quarters are comparable.'), h('p', {}, '* Residual = 5-day return − β·sector-ETF return − γ·EPS surprise (β = 1, γ = 1.5 in the pipeline). What is left is what the tone of the call added beyond what was reported.'), h('p', {}, 'The demo numbers are illustrative series for fictional companies. Load a JSON file produced by ', h('code', {}, 'python -m src.export_dashboard signals.csv'), ' to see real pipeline output; the loader validates the shape and rejects malformed files with a specific message.')),
+    h('div', { class: 'card' }, h('h2', {}, 'Notable extracts'), h('p', { class: 'hint', style: 'margin-bottom:12px' }, S.custom ? `${cur.label} · passages the model tagged` : `${cur.label} · passages the model tagged in the prepared remarks, word for word, 25 words at most`), c.extracts.length ? c.extracts.map(e => h('div', { class: 'extract' }, h('div', {}, h('span', { class: 'cat' }, e.tag)), h('div', {}, h('q', {}, esc(e.text)), h('div', { class: 'who' }, '— ' + esc(e.speaker))))) : h('p', { class: 'muted' }, 'No extracts in this file.'))));
+  main.append(h('div', { class: 'card' }, h('h2', {}, 'Methodology'), h('div', { class: 'method' }, h('div', {}, h('p', {}, 'Each transcript is split into prepared remarks and analyst Q&A and scored separately by the model against a fixed JSON schema, written into the prompt and validated, with one repair round (Anthropic, OpenAI, Gemini or an OpenAI-compatible server; native structured output is an option for Anthropic and OpenAI). Tone, hedging density, guidance confidence, topics and tagged passages come back as structured fields, so quarters are comparable.'), h('p', {}, '* Residual = 5-day return − β·sector-ETF return − γ·EPS surprise (β = 1, γ = 1.5 in the pipeline). What is left is what the tone of the call added beyond what was reported.'), h('p', {}, 'The data on this page is one run of this pipeline on three real calls, scored from the transcripts the companies publish themselves (', h('code', {}, 'python -m src.ir_run'), '). Analyst questions are scored as part of the Q&A section but never quoted, and no analyst is named. Load a JSON file produced by ', h('code', {}, 'python -m src.export_dashboard signals.csv'), ' to see your own run; the loader validates the shape and rejects malformed files with a specific message.')),
     h('div', {}, h('pre', { tabindex: '0', role: 'region', 'aria-label': 'Model output schema' }, `{
   "section": "prepared" | "qa",
   "tone": -1.0..1.0,
@@ -177,7 +186,7 @@ function renderPage() {
   "guidance_change": "raise" | "hold" | "lower" | "none",
   "topics": [ { "name", "weight": 0..1, "tone": -1..1 } ],
   "notable_passages": [ { "tag": "confident" | "hedging" | "evasion" | "admission" | "contradiction", "speaker", "text" } ]
-}`), h('p', { class: 'sample-row' }, h('button', { class: 'btn btn-sm', id: 'sample', title: 'Download the demo data to see the expected JSON shape', onclick: downloadSample }, 'Sample JSON'), h('span', {}, 'downloads the demo file in the shape Load JSON reads.'))))));
+}`), h('p', { class: 'sample-row' }, h('button', { class: 'btn btn-sm', id: 'sample', title: 'Download a synthetic example file to see the expected JSON shape', onclick: downloadSample }, 'Sample JSON'), h('span', {}, 'downloads a synthetic example (fictional companies, invented numbers) in the shape Load JSON reads.'))))));
 }
 // A file replaces what is on screen only after it has passed validation and been drawn without an error; otherwise the current
 // data stays and the message names what is wrong (2026-09-16: a topic with only a name passed, replaced the data,
@@ -195,15 +204,15 @@ function loadFile(file) { if (!file) return; const rd = new FileReader(); rd.onl
   toast(`Loaded ${Object.keys(parsed).length} tickers, ${Object.values(parsed).reduce((a, c) => a + c.quarters.length, 0)} calls from ${file.name}`); };
   rd.onerror = () => toast(`Could not read ${file.name}. Nothing was changed.`, 'error', { label: 'Choose another file', run: () => $('#file').click(), focus: () => $('#load') }); rd.readAsText(file); }
 // Sample JSON sits next to the schema in the Methodology card (re-rendered with the page), so its handler is attached there
-function downloadSample() { const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(DEMO, null, 2)], { type: 'application/json' })), download: 'dashboard_sample.json' }); document.body.append(a); a.click(); a.remove(); }
+function downloadSample() { const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(DEMO, null, 2)], { type: 'application/json' })), download: 'dashboard_sample_synthetic.json' }); document.body.append(a); a.click(); a.remove(); }
 function init() {
   const root = document.documentElement, tb = $('#theme');
   Appearance.bindToggle(tb);   // ◐ switches light/dark only (appearance.js)
   Appearance.bindSettings($('#nl-settings-button'));   // the gear: palette + light/dark
   $('#load').addEventListener('click', () => $('#file').click()); $('#file').addEventListener('change', e => { loadFile(e.target.files[0]); e.target.value = ''; });
-  $('#reset').addEventListener('click', () => { S.data = DEMO; S.custom = false; S.ticker = Object.keys(DEMO)[0]; render(); toast('Reset to demo data'); });
+  $('#reset').addEventListener('click', () => { S.data = REAL; S.custom = false; S.ticker = Object.keys(REAL)[0]; render(); toast('Back to the real calls'); });
   document.addEventListener('dragover', e => e.preventDefault()); document.addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
-  const t = fromHash(); if (t && DEMO[t]) S.ticker = t;
+  const t = fromHash(); if (t && REAL[t]) S.ticker = t;
   // any other address (the home link's "#", an old ticker) shows the first company, and render() writes its ticker back
   window.addEventListener('hashchange', () => { const t = fromHash(); S.ticker = S.data[t] ? t : Object.keys(S.data)[0]; render(); });
   $('.skip').addEventListener('click', e => { e.preventDefault(); firstHeading().focus(); });   // "#main" in the address would be read as a ticker

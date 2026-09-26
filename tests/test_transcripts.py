@@ -51,3 +51,12 @@ def test_quarter_label_and_hash_are_stable():
     t = Transcript(ticker="NWSC", year=2025, quarter=2, call_date="2025-08-27", prepared_text="p", qa_text="q")
     assert t.quarter_label == "Q2 2025"
     assert t.hash_id() == Transcript(ticker="NWSC", year=2025, quarter=2, call_date="x", prepared_text="", qa_text="").hash_id()
+
+
+def test_operator_announcement_of_a_later_qa_session_is_not_the_hand_off():
+    # the opening line of many calls (Alphabet Q2 2026 among them) announces the Q&A before the prepared remarks
+    text = ("Operator: After the speaker presentations, there will be a question\u2011and\u2011answer session. "
+            f"{PREPARED} We will now begin the question-and-answer session. {QA}")
+    prepared, qa = split_prepared_qa(text)
+    assert PREPARED in prepared and QA not in prepared
+    assert qa.lstrip(". ").startswith(QA)

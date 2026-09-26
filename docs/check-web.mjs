@@ -1,4 +1,4 @@
-// check-web.mjs — the static dashboard's own checks: no external scripts, demo data passes the loader's validation,
+// check-web.mjs — the static dashboard's own checks: no external scripts, demo and real data pass the loader's validation,
 // a mutated file is rejected (negative control), and the Pearson helper matches a hand-computed value.
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url'; import vm from 'node:vm';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +41,15 @@ const rNoGamma = ctx.__r(noGamma.GRFD, noGamma.GRFD.quarters[7]);
 check('a company without γ is "not checkable" and says γ is what is missing', rNoGamma.checkable === false && rNoGamma.missing.join() === 'γ', JSON.stringify(rNoGamma));
 // Sample JSON lives next to the schema in the Methodology card; the load-error message has to send people there, not to the top bar
 check('Sample JSON is not in the top bar, is rendered in the Methodology card, and the load error points there', !/id="sample"/.test(html) && /h\('pre'[\s\S]*?id: 'sample'/.test(app.slice(app.indexOf("'Methodology'"))) && /shape = 'Sample JSON, under the schema in the Methodology section/.test(app) && !/Sample JSON in the top bar/.test(app));
+// the default view is real model output (real-data.js, written by src/ir_run.py); the synthetic file is only the Sample JSON
+vm.runInNewContext(fs.readFileSync(path.join(HERE, 'real-data.js'), 'utf8'), sandbox);
+const real = sandbox.window.CALLDELTA_REAL, meta = sandbox.window.CALLDELTA_REAL_META;
+check('real data passes the loader validation', ctx.__v(real) === null, String(ctx.__v(real)));
+check('real data covers the calls its metadata lists, with model and run date', Object.keys(real).join() === meta.calls.map(c => c.ticker).join() && /^claude-/.test(meta.model) && /^\d{4}-\d{2}-\d{2}$/.test(meta.run_date), Object.keys(real).join());
+check("every transcript source is the company's own investor-relations site", meta.calls.every(c => /^https:\/\/(www\.microsoft\.com\/en-us\/investor|abc\.xyz\/investor|investor\.atmeta\.com)\//.test(c.source_page)), meta.calls.map(c => c.source_page).join(' '));
+const quotes = Object.values(real).flatMap(c => c.extracts);
+check('real quotes: at most 4 per company, each at most 25 words', Object.values(real).every(c => c.extracts.length <= 4) && quotes.every(e => e.text.replace(/\u2026/g, '').trim().split(/\s+/).length <= 25), quotes.map(e => e.text.split(/\s+/).length).join());
+check('the page opens on the real data and Sample JSON downloads the synthetic file, named as such', /const S = \{ data: REAL,/.test(app) && /JSON\.stringify\(DEMO, null, 2\)[\s\S]{0,120}dashboard_sample_synthetic\.json/.test(app) && !/fictional companies/.test(html.split('<footer')[0]));
 check('pearson([1,2,3],[2,4,6]) = 1 and < 3 points → null', Math.abs(ctx.__p([1, 2, 3], [2, 4, 6]) - 1) < 1e-12 && ctx.__p([1, 2], [1, 2]) === null);
 console.log(`check-web · ${new Date().toISOString()} · node ${process.version}`);
 for (const [st, name, d] of results) console.log(`${st}  ${name}${d ? '  · ' + d : ''}`);

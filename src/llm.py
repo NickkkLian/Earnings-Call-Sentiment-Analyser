@@ -1,7 +1,7 @@
 """llm.py — one small, dependency-free way to call four kinds of LLM endpoint.
 
 Providers
-  anthropic           Claude, Messages API                         (default)
+  anthropic           Claude, Messages API                         (default; model claude-sonnet-5)
   openai              OpenAI, Chat Completions API
   gemini              Google Gemini, generateContent API
   openai-compatible   any server that speaks the Chat Completions shape: Ollama, LM Studio, vLLM, most gateways
@@ -33,6 +33,11 @@ DEFAULT_BASE = {
 }
 KEY_ENV = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY",
            "openai-compatible": "LLM_API_KEY"}
+
+
+# Every successful call appends {"provider", "model", "usage"} here (usage as the provider reported it), so a run can
+# report the tokens it spent and stop before a spending cap.
+USAGE_LOG: list[dict] = []
 
 
 class ConfigError(ValueError):
@@ -94,7 +99,16 @@ def parse_response(cfg, data):
     p = cfg["provider"]
     try:
         if p == "anthropic":
-            text = "".join(c.get("text", "") for c in data["content"] if c.get("type", "text") == "text")
+            # Claude Sonnet 5 / Opus 5.5 think by default, so a reply holds thinking blocks next to the text: read by
+            # block type. A refusal or a reply cut off at max_tokens has no complete answer and is an error, not text.
+            stop = data.get("stop_reason")
+            if stop == "refusal":
+                raise ProviderError(f"anthropic: the model declined the request (stop_reason=refusal, "
+                                    f"category={(data.get('stop_details') or {}).get('category')})")
+            if stop == "max_tokens":
+                raise ProviderError("anthropic: the reply hit max_tokens before it finished (thinking counts toward "
+                                    "max_tokens); raise max_tokens")
+            text = "".join(c.get("text", "") for c in data["content"] if c.get("type") == "text")
             model = data.get("model") or cfg["model"]
         elif p in ("openai", "openai-compatible"):
             text = data["choices"][0]["message"]["content"] or ""
@@ -107,8 +121,10 @@ def parse_response(cfg, data):
     return text, model
 
 
-def complete(cfg, system, user, max_tokens=2048, timeout=60, opener=None):
-    """One request, no retries. Returns (text, model). Raises ProviderError on HTTP errors and unreadable bodies."""
+def complete(cfg, system, user, max_tokens=2048, timeout=600, opener=None):
+    """One request, no retries. Returns (text, model). Raises ProviderError on HTTP errors and unreadable bodies.
+
+    The timeout is long because a model that thinks before answering can take minutes on a whole call section."""
     url, headers, body = build_request(cfg, system, user, max_tokens)
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
     open_ = opener or urllib.request.urlopen
@@ -122,7 +138,9 @@ def complete(cfg, system, user, max_tokens=2048, timeout=60, opener=None):
         data = json.loads(raw)
     except json.JSONDecodeError:
         raise ProviderError(f"{cfg['provider']}: response was not JSON") from None
-    return parse_response(cfg, data)
+    text, model = parse_response(cfg, data)
+    USAGE_LOG.append({"provider": cfg["provider"], "model": model, "usage": data.get("usage") or data.get("usageMetadata")})
+    return text, model
 
 
 def extract_json(text, kind="array"):

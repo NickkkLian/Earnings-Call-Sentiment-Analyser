@@ -123,9 +123,27 @@ class PriceReaction:
     residual_5d: float            # return_5d - β*sector - γ*surprise
 
 
+def fetch_eps_surprise_yf(ticker: str, call_date: str) -> tuple[float, float, float]:
+    """(actual_eps, estimated_eps, surprise) from Yahoo Finance's earnings calendar via yfinance, for the report dated
+    on or within two days before call_date. Used when no FMP key is set."""
+    import yfinance as yf
+    ed = yf.Ticker(ticker).get_earnings_dates(limit=12)
+    target = pd.to_datetime(call_date).date()
+    rows = [(idx, row) for idx, row in ed.iterrows()
+            if 0 <= (target - idx.date()).days <= 2 and pd.notna(row.get("Reported EPS"))]
+    if not rows:
+        raise ValueError(f"No reported EPS on Yahoo Finance for {ticker} near {call_date}")
+    _, row = max(rows, key=lambda r: r[0])
+    actual, est = float(row["Reported EPS"]), float(row["EPS Estimate"])
+    return actual, est, ((actual - est) / abs(est) if est else 0.0)
+
+
 def fetch_eps_surprise(ticker: str, call_date: str, api_key: str | None = None) -> tuple[float, float, float]:
-    """Pull (actual_eps, estimated_eps, surprise%) from FMP for the quarter ending on/around call_date."""
+    """Pull (actual_eps, estimated_eps, surprise%) from FMP for the quarter ending on/around call_date.
+    Without an FMP key, falls back to Yahoo Finance (fetch_eps_surprise_yf)."""
     api_key = api_key or os.environ.get("FMP_API_KEY")
+    if not api_key:
+        return fetch_eps_surprise_yf(ticker, call_date)
     url = f"https://financialmodelingprep.com/api/v3/earnings-surprises/{ticker.upper()}"
     rows = fmp_get(url, api_key).json()   # a failure raises FMPError, which never carries the key (src/fmp.py)
     target = pd.to_datetime(call_date)

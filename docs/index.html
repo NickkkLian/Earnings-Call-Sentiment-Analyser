@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script>/* appearance boot — runs before any stylesheet so the stored palette and light/dark apply on the first paint */(function(){try{var d=document.documentElement,L=window.localStorage,t=L.getItem('nl-theme'),s=L.getItem('nl-scheme');if(s===null){var o=L.getItem('theme')||L.getItem('qm-theme');if(o==='dark'||o==='light')s=o;}if(t==='paper'||t==='ink')d.setAttribute('data-theme',t);if(s==='dark'||s==='light')d.setAttribute('data-scheme',s);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Call tone vs. analyst pushback — not a trading signal. CallDelta scores earnings calls with structured LLM output and tracks the gap against residual returns. Synthetic demo data; load your own pipeline JSON.">
+<meta name="description" content="Call tone vs. analyst pushback — not a trading signal. CallDelta scores earnings calls with structured LLM output and tracks the gap against residual returns. Opens on real model output for three recent earnings calls (Microsoft, Alphabet, Meta), scored from the companies' own transcripts; load your own pipeline JSON.">
 <meta name="theme-color" content="#f7e9e8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#130e15" media="(prefers-color-scheme: dark)">
 <title>CallDelta</title>
@@ -23,10 +23,10 @@
     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="19" height="19" rx="5" stroke="currentColor" stroke-width="2"/><rect x="14" y="6" width="4" height="4" rx="1" fill="var(--point)"/><path d="M6 17l3.5-3.5 3 2.5 5.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <b>CallDelta</b><span>Earnings-call tone vs. analyst pushback — a correlation, not a trading signal.</span>
   </a>
-  <span class="pill" id="pill" title="Four fictional companies with illustrative numbers. Load a JSON file from the pipeline to replace them.">Demo<span class="long" id="pill-long"> · synthetic data · fictional companies</span></span>
+  <span class="pill" id="pill" title="Model output for three real earnings calls, scored from the companies' own transcripts. Load a JSON file from the pipeline to replace it."><span id="pill-short">Real calls</span><span class="long" id="pill-long"></span></span>
   <span class="spacer"></span>
   <button class="btn btn-primary" id="load">Load JSON</button>
-  <button class="btn btn-ghost" id="reset" hidden>Reset to demo</button>
+  <button class="btn btn-ghost" id="reset" hidden>Back to real calls</button>
   <button class="btn btn-ghost btn-icon" id="theme" aria-label="Dark mode" aria-pressed="false" title="Dark mode"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
   <button type="button" class="btn btn-ghost btn-icon" id="nl-settings-button" aria-haspopup="dialog" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.34 5.10L10.58 2.51L13.42 2.51L13.66 5.10A7.1 7.1 0 0 1 15.71 5.95L17.71 4.28L19.72 6.29L18.05 8.29A7.1 7.1 0 0 1 18.90 10.34L21.49 10.58L21.49 13.42L18.90 13.66A7.1 7.1 0 0 1 18.05 15.71L19.72 17.71L17.71 19.72L15.71 18.05A7.1 7.1 0 0 1 13.66 18.90L13.42 21.49L10.58 21.49L10.34 18.90A7.1 7.1 0 0 1 8.29 18.05L6.29 19.72L4.28 17.71L5.95 15.71A7.1 7.1 0 0 1 5.10 13.66L2.51 13.42L2.51 10.58L5.10 10.34A7.1 7.1 0 0 1 5.95 8.29L4.28 6.29L6.29 4.28L8.29 5.95A7.1 7.1 0 0 1 10.34 5.10Z"/><circle cx="12" cy="12" r="3"/></svg></button>
   <a class="btn btn-ghost gh" href="https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser" rel="noopener">GitHub</a>
@@ -35,13 +35,14 @@
 <main class="wrap" id="main" tabindex="-1"></main>
 <footer class="honest">
   <dl class="honest-in">
-    <div><dt>About this demo</dt><dd>Four fictional companies with invented tickers and illustrative numbers in the exact shape the pipeline exports. The quotes are invented as well, but the call dates are taken from the real earnings calendars of four large US companies (4 of the 32 fall a week later). Totals, deltas and the correlation are computed in this tab from whatever data is loaded.</dd></div>
+    <div><dt>About this data</dt><dd>One run of the pipeline on the most recent call of three companies that publish full transcripts on their own investor-relations sites: Microsoft FY26 Q4, Alphabet Q2 2026 and Meta Q2 2026, all held in July 2026. Scores by claude-sonnet-5, run 2026-09-25; EPS estimates and prices from Yahoo Finance. Quotes come only from the prepared remarks and are checked word for word against the transcript. One quarter per company, so there is no trend and no correlation yet. The Sample JSON file is synthetic.</dd></div>
     <div><dt>Not verified here</dt><dd>Whether the framing gap predicts residual returns (a few hundred calls would still be a small sample); the EPS-surprise control uses a constant γ; sector proxies are ETFs, not a factor model; loaded files are validated for shape, not for correctness.</dd></div>
     <div><dt>Source</dt><dd><a href="https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser" rel="noopener">github.com/NickkkLian/Earnings-Call-Sentiment-Analyser</a> · MIT · built by Nick Lian</dd></div>
   </dl>
 </footer>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <script src="demo-data.js"></script>
+<script src="real-data.js"></script>
 <script src="appearance.js"></script>
 <script src="app.js"></script>
 </body>

@@ -195,7 +195,7 @@ You can swap any single layer without touching the others.
   sector ETFs (SOXX, IGV, XLC, XLY, XLP, XLF, XLV, IBB, XLI, XLE, XLU, XLB,
   XLRE), defaulting to SPY. ~150 large/mid caps covered.
 - **Dashboard JSON validation** — load button rejects malformed input with a
-  specific error message, falls back to the demo data.
+  specific error message and keeps the data already on screen.
 - **Topic merging across sections** — fuzzy substring match aligns
   "Data Center" (mgmt) with "Data center demand" (Q&A); unmatched Q&A topics
   surface separately (those are interesting on their own — analysts pushed on
@@ -261,9 +261,10 @@ fitted multi-factor model.
 
 Four classes:
 
-- `AnthropicAnalyzer` — uses tool-use with `tool_choice` set to force the
-  model to call `submit_analysis` with arguments matching the Pydantic
-  schema. Reliable structured output, no JSON parsing.
+- `AnthropicAnalyzer` — offers a `submit_analysis` tool whose input schema is
+  the Pydantic schema, with `tool_choice` auto and a prompt line asking for the
+  call (Claude Sonnet 5 and Opus 5.5 reject a forced tool choice). A refusal, a
+  reply cut off at `max_tokens`, or a reply without the tool call raises.
 - `OpenAIAnalyzer` — uses `client.beta.chat.completions.parse()` which
   accepts the Pydantic class directly. Handles the schema massaging
   (`additionalProperties: false`, required-field promotion) that strict mode
@@ -323,7 +324,9 @@ it. Deliberately thin — most logic lives in the tested modules.
 ### Folder: `docs/`
 
 A static page (GitHub Pages root): `index.html` + `app.css` (shared design tokens) + `app.js` +
-`demo-data.js` (four fictional companies in the export shape). No framework, no build step, no CDN scripts;
+`real-data.js` (the default view: real model output for three July 2026 calls, written by `python -m src.ir_run`) +
+`demo-data.js` (four fictional companies in the export shape, used only as the Sample JSON download). No framework,
+no build step, no CDN scripts;
 the charts are hand-drawn SVG. `docs/check-web.mjs` runs in CI.
 
 **State:** `{ data, custom, ticker }` — the loaded JSON, whether it came from a file, the selected ticker (also in the URL hash).
@@ -461,9 +464,9 @@ on (ret, sector_ret, surprise) and replace the constants.
 The cache handles re-runs free, so the cost-conscious workflow is:
 
 ```bash
-# First pass with cheap model
+# First pass with the default model (claude-sonnet-5)
 python -m src.cli --tickers ... --quarters ... \
-    --provider anthropic --model claude-haiku-4-5-20251001
+    --provider anthropic --model claude-sonnet-5
 
 # Re-run interesting subset with a stronger model of your choice — only those re-extract
 python -m src.cli --tickers NVDA,INTC --quarters ... \
