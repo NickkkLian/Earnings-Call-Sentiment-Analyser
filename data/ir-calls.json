@@ -1,21 +1,153 @@
 {
- "note": "Most recent quarter per company as of 2026-09-25. Each transcript is the company's own, from its investor-relations site. sha256 is of the file that was scored.",
+ "note": "The four most recent quarters per company as of 2026-09-25. Each transcript is the company's own, from its investor-relations site. sha256 is of the file that was scored.",
+ "notes": {
+  "GOOGL": "Alphabet's reported EPS beat the estimate by 27%, 92% and 214% in Q3 2025, Q1 2026 and Q2 2026, and on each of those calls it said other income came mainly from unrealized gains on equity securities, which the estimates did not include. The EPS-surprise control (1.5 × surprise) swamps those three residuals: read them as not meaningful.",
+  "META": "Meta's EPS in Q3 2025 includes a one-time non-cash tax charge (reported EPS 84% below the estimate) and in Q1 2026 a tax benefit (57% above), both stated on the calls. The EPS-surprise control swamps those two residuals: read them as not meaningful."
+ },
  "calls": [
-  {"ticker": "MSFT", "company": "Microsoft Corporation", "year": 2026, "quarter": 4, "label": "FY26 Q4",
-   "call_date": "2026-07-29", "format": "docx",
+  {
+   "ticker": "MSFT",
+   "company": "Microsoft Corporation",
+   "year": 2026,
+   "quarter": 1,
+   "label": "FY26 Q1",
+   "call_date": "2025-10-29",
+   "format": "docx",
+   "source_page": "https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q1",
+   "source_url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/TranscriptFY26Q1.docx",
+   "sha256": "ecad78b9a38e33982b5c9ca285929921d4f82a64efc1f35cb93853311dd99280"
+  },
+  {
+   "ticker": "MSFT",
+   "company": "Microsoft Corporation",
+   "year": 2026,
+   "quarter": 2,
+   "label": "FY26 Q2",
+   "call_date": "2026-01-28",
+   "format": "docx",
+   "source_page": "https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q2",
+   "source_url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/TranscriptQandAFY26q2",
+   "sha256": "ac9d403ad84834a06ca6b60eea136e6391d7430d98245aba5c28fa4dacd1ba99"
+  },
+  {
+   "ticker": "MSFT",
+   "company": "Microsoft Corporation",
+   "year": 2026,
+   "quarter": 3,
+   "label": "FY26 Q3",
+   "call_date": "2026-04-29",
+   "format": "docx",
+   "source_page": "https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q3",
+   "source_url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/TranscriptQandAFY26Q3",
+   "sha256": "dfdd86b383a676baa75f5165a8910ba2b59698554156cea596f447f92338db24"
+  },
+  {
+   "ticker": "MSFT",
+   "company": "Microsoft Corporation",
+   "year": 2026,
+   "quarter": 4,
+   "label": "FY26 Q4",
+   "call_date": "2026-07-29",
+   "format": "docx",
    "source_page": "https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q4",
    "source_url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/TranscriptFY26Q4.docx",
-   "sha256": "b1ba4245f1940a27b58c80f7c085473b6790007aa563347756268455aeb779ae"},
-  {"ticker": "GOOGL", "company": "Alphabet Inc.", "year": 2026, "quarter": 2, "label": "Q2 2026",
-   "call_date": "2026-07-22", "format": "pdf",
-   "note": "Alphabet said on the call that its net income and EPS rose mainly because of unrealized gains on equity securities. The EPS estimate did not include them, so the EPS-surprise control (1.5 × +214%) swamps this residual: read it as not meaningful.",
+   "sha256": "b1ba4245f1940a27b58c80f7c085473b6790007aa563347756268455aeb779ae"
+  },
+  {
+   "ticker": "GOOGL",
+   "company": "Alphabet Inc.",
+   "year": 2025,
+   "quarter": 3,
+   "label": "Q3 2025",
+   "call_date": "2025-10-29",
+   "format": "pdf",
+   "source_page": "https://abc.xyz/investor/events/event-details/2025/2025-Q3-Earnings-Call-2025-4OI4Bac_Q9/default.aspx",
+   "source_url": "https://s206.q4cdn.com/479360582/files/doc_events/2025/Oct/29/2025_Q3_Earnings_Transcript.pdf",
+   "sha256": "2f7b5b7f2eacf19e31f86689780f095e8116be0cb8683cb65a6303243e432b37"
+  },
+  {
+   "ticker": "GOOGL",
+   "company": "Alphabet Inc.",
+   "year": 2025,
+   "quarter": 4,
+   "label": "Q4 2025",
+   "call_date": "2026-02-04",
+   "format": "pdf",
+   "source_page": "https://abc.xyz/investor/events/event-details/2026/2025-Q4-Earnings-Call-2026-Dr_C033hS6/default.aspx",
+   "source_url": "https://s206.q4cdn.com/479360582/files/doc_events/2026/Feb/04/2025_Q4_Earnings_Transcript.pdf",
+   "sha256": "8e3678d5138e30a0ee9065cdf54ae790937b9e27194ffae223a0c438c4928cd5"
+  },
+  {
+   "ticker": "GOOGL",
+   "company": "Alphabet Inc.",
+   "year": 2026,
+   "quarter": 1,
+   "label": "Q1 2026",
+   "call_date": "2026-04-29",
+   "format": "pdf",
+   "source_page": "https://abc.xyz/investor/events/event-details/2026/2026-Q1-Earnings-Call-2026-nW8kCrBAKS/default.aspx",
+   "source_url": "https://s206.q4cdn.com/479360582/files/doc_events/2026/Apr/29/Alphabet-2026_Q1_Earnings_Transcript.pdf",
+   "sha256": "a484838849e73a4d13dd34a4f4d0e3b030b4543839ad8808f34b64af706242e2"
+  },
+  {
+   "ticker": "GOOGL",
+   "company": "Alphabet Inc.",
+   "year": 2026,
+   "quarter": 2,
+   "label": "Q2 2026",
+   "call_date": "2026-07-22",
+   "format": "pdf",
    "source_page": "https://abc.xyz/investor/events/event-details/2026/2026-Q2-Earnings-Call-2026-GgTAq7Is0z/default.aspx",
    "source_url": "https://s206.q4cdn.com/479360582/files/doc_events/2026/Jul/22/2026_Q2_Earnings_Transcript.pdf",
-   "sha256": "de938411f77818b147ff51d8ca2f70081f9a44401d396f1779ab5b5adfbd9123"},
-  {"ticker": "META", "company": "Meta Platforms, Inc.", "year": 2026, "quarter": 2, "label": "Q2 2026",
-   "call_date": "2026-07-29", "format": "pdf",
+   "sha256": "de938411f77818b147ff51d8ca2f70081f9a44401d396f1779ab5b5adfbd9123"
+  },
+  {
+   "ticker": "META",
+   "company": "Meta Platforms, Inc.",
+   "year": 2025,
+   "quarter": 3,
+   "label": "Q3 2025",
+   "call_date": "2025-10-29",
+   "format": "pdf",
+   "source_page": "https://investor.atmeta.com/investor-events/default.aspx",
+   "source_url": "https://s21.q4cdn.com/399680738/files/doc_financials/2025/q3/META-Q3-2025-Earnings-Call-Transcript.pdf",
+   "sha256": "3a00bd026249683ccbd45565bd6c3ea7a05986efb5fa3bf5604600ba520a72a8"
+  },
+  {
+   "ticker": "META",
+   "company": "Meta Platforms, Inc.",
+   "year": 2025,
+   "quarter": 4,
+   "label": "Q4 2025",
+   "call_date": "2026-01-28",
+   "format": "pdf",
+   "source_page": "https://investor.atmeta.com/investor-events/default.aspx",
+   "source_url": "https://s21.q4cdn.com/399680738/files/doc_financials/2025/q4/META-Q4-2025-Earnings-Call-Transcript.pdf",
+   "sha256": "2def106046fcde215f214ac0689aff6fa6c432d7016bf9315b4a831b2041a14b"
+  },
+  {
+   "ticker": "META",
+   "company": "Meta Platforms, Inc.",
+   "year": 2026,
+   "quarter": 1,
+   "label": "Q1 2026",
+   "call_date": "2026-04-29",
+   "format": "pdf",
+   "source_page": "https://investor.atmeta.com/investor-events/default.aspx",
+   "source_url": "https://s21.q4cdn.com/399680738/files/doc_financials/2026/q1/META-Q1-2026-Earnings-Call-Transcript.pdf",
+   "sha256": "75a66cc6c660e37c009851d6820fd75bc5576d6d298b974b49bba26fc4bd6bac"
+  },
+  {
+   "ticker": "META",
+   "company": "Meta Platforms, Inc.",
+   "year": 2026,
+   "quarter": 2,
+   "label": "Q2 2026",
+   "call_date": "2026-07-29",
+   "format": "pdf",
    "source_page": "https://investor.atmeta.com/investor-events/default.aspx",
    "source_url": "https://s21.q4cdn.com/399680738/files/doc_financials/2026/q2/META-Q2-2026-Earnings-Call-Transcript.pdf",
-   "sha256": "e2afcb9b452656bea2706e1dedc190d31b3aafe5528af7f3c19de6ab347a34ec"}
+   "sha256": "e2afcb9b452656bea2706e1dedc190d31b3aafe5528af7f3c19de6ab347a34ec"
+  }
  ]
 }

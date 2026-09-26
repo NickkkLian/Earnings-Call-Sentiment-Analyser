@@ -64,6 +64,8 @@ QA_MARKERS = [
     r"first\s+question\s+(comes|is)\s+from",
     # match both "we'll" and "we will" forms; "now" is optional
     r"(we'll|we\s+will|we\s+would)(\s+now)?\s+(take|move\s+to|open\s+(it\s+up\s+)?(for|to))\s+questions",
+    # Microsoft: "With that, let's go to Q&A, Jonathan." (the apostrophe may be curly)
+    r"let.s\s+go\s+to\s+q&a",
 ]
 QA_RE = re.compile("|".join(QA_MARKERS), re.IGNORECASE)
 

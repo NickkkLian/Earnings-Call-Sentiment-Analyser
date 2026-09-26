@@ -93,15 +93,20 @@ def main(argv=None):
             raise SystemExit(f"stopping: ${usd:.3f} spent, the next request could pass ${args.max_usd}")
         return complete(cfg, system, user, max_tokens=max_tokens, **kw)
     llm.complete = guarded
+    latest = {}
     for c in manifest["calls"]:
-        raw = fetch(c["source_url"], Path(args.cache_dir) / "ir" / f"{c['ticker']}.{c['format']}", c.get("sha256"))
+        latest[c["ticker"]] = max(latest.get(c["ticker"], ""), c["call_date"])
+    for c in manifest["calls"]:
+        cached = Path(args.cache_dir) / "ir" / f"{c['ticker']}-{c['label'].replace(' ', '-')}.{c['format']}"
+        raw = fetch(c["source_url"], cached, c.get("sha256"))
         text = to_text(raw, c["format"])
         prepared, qa = split_prepared_qa(text)
         tr = Transcript(ticker=c["ticker"], year=c["year"], quarter=c["quarter"], call_date=c["call_date"],
                         prepared_text=prepared, qa_text=qa)
         call = analyze_call(tr, analyzer)
         rxn = compute_reaction(c["ticker"], c["call_date"])
-        prepared_text[c["ticker"]] = tr.prepared_text
+        if c["call_date"] >= latest[c["ticker"]]:   # quotes come from the latest call only, the one they are checked against
+            prepared_text[c["ticker"]] = tr.prepared_text
         rows.append({
             "ticker": c["ticker"], "quarter_label": c["label"], "call_date": c["call_date"],
             "mgmt_tone": call.prepared.tone, "qa_tone": call.qa.tone, "sentiment_gap": call.sentiment_gap,
@@ -121,13 +126,15 @@ def main(argv=None):
 
     out = export(pd.DataFrame(rows), Path(args.cache_dir) / "real-data.json", extract_sections=("prepared",),
                  max_quote_words=25, verbatim_in=prepared_text)
-    out = {c["ticker"]: out[c["ticker"]] for c in manifest["calls"]}   # tabs in manifest order
+    out = {t: out[t] for t in dict.fromkeys(c["ticker"] for c in manifest["calls"])}   # tabs in manifest order
     for c in manifest["calls"]:
-        out[c["ticker"]]["company"] = c["company"]
-        out[c["ticker"]]["source_url"] = c["source_url"]
-        out[c["ticker"]]["quarters"][0]["label"] = c["label"]
-        if c.get("note"):
-            out[c["ticker"]]["note"] = c["note"]
+        co = out[c["ticker"]]
+        co["company"] = c["company"]
+        for q in co["quarters"]:   # each quarter names the transcript it was scored from
+            if q["date"] == c["call_date"]:
+                q["source_page"], q["source_url"] = c["source_page"], c["source_url"]
+    for t, note in manifest.get("notes", {}).items():
+        out[t]["note"] = note
     tin, tout, usd = spent_usd(args.model)
     meta = {"run_date": dt.date.today().isoformat(), "model": args.model, "calls": meta_calls,
             "eps_source": "Yahoo Finance earnings calendar (yfinance)", "price_source": "Yahoo Finance daily closes (yfinance)"}

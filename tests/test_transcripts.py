@@ -16,6 +16,7 @@ MARKERS = [
     "We will now take questions.",
     "We'll move to questions.",
     "we would now open the call to questions",
+    "With that, let\u2019s go to Q&A, Jonathan.",
 ]
 
 
