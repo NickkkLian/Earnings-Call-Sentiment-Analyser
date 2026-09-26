@@ -17,8 +17,11 @@ def test_combine_topics_matches_by_substring_and_surfaces_qa_only_topics():
     out = _combine_topics(prepared, qa)
     by = {t["name"]: t for t in out}
     assert by["Data Center"]["qa"] == 0.2 and by["Data Center"]["weight"] == 0.45
-    assert by["Margins"]["qa"] == 0.0, "unmatched prepared topic keeps a neutral Q&A tone"
-    assert by["China"]["mgmt"] == 0.0 and by["China"]["qa"] == -0.5, "analysts pushed on something management did not raise"
+    assert by["Margins"]["qa"] == 0.0 and by["Margins"]["qa_missing"] is True, \
+        "an unmatched prepared topic carries a placeholder Q&A tone, flagged as missing"
+    assert by["China"]["mgmt"] == 0.0 and by["China"]["mgmt_missing"] is True and by["China"]["qa"] == -0.5, \
+        "analysts pushed on something management did not raise"
+    assert "qa_missing" not in by["Data Center"] and "mgmt_missing" not in by["Data Center"]
     assert [t["weight"] for t in out] == sorted([t["weight"] for t in out], reverse=True)
 
 

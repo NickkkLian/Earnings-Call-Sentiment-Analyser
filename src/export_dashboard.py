@@ -79,12 +79,13 @@ def _combine_topics(prepared_topics: list[dict], qa_topics: list[dict]) -> list[
                 "qa": best[1]["tone"],
             })
         else:
-            out.append({"name": name, "weight": pt["weight"], "mgmt": pt["tone"], "qa": 0.0})
+            # "qa_missing": the 0.0 is a placeholder (analysts did not discuss it), not a neutral tone
+            out.append({"name": name, "weight": pt["weight"], "mgmt": pt["tone"], "qa": 0.0, "qa_missing": True})
 
     # surface Q&A-only topics (analyst pushed on something mgmt didn't emphasize — interesting!)
     for i, qt in enumerate(qa_topics):
         if i not in qa_used:
-            out.append({"name": qt["name"], "weight": qt["weight"], "mgmt": 0.0, "qa": qt["tone"]})
+            out.append({"name": qt["name"], "weight": qt["weight"], "mgmt": 0.0, "qa": qt["tone"], "mgmt_missing": True})
 
     # Sort by total airtime (weight)
     out.sort(key=lambda t: t["weight"], reverse=True)

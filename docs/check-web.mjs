@@ -50,6 +50,7 @@ check("every transcript source is the company's own investor-relations site", me
 const quotes = Object.values(real).flatMap(c => c.extracts);
 check('real quotes: at most 4 per company, each at most 25 words', Object.values(real).every(c => c.extracts.length <= 4) && quotes.every(e => e.text.replace(/\u2026/g, '').trim().split(/\s+/).length <= 25), quotes.map(e => e.text.split(/\s+/).length).join());
 check('the page opens on the real data and Sample JSON downloads the synthetic file, named as such', /const S = \{ data: REAL,/.test(app) && /JSON\.stringify\(DEMO, null, 2\)[\s\S]{0,120}dashboard_sample_synthetic\.json/.test(app) && !/fictional companies/.test(html.split('<footer')[0]));
+check('a topic one section did not discuss is flagged, so the page shows a dash instead of a 0.00 tone', Object.values(real).every(c => c.topics.every(t => (t.mgmt_missing === true) + (t.qa_missing === true) < 2)) && /t\.qa_missing === true \? h\('span', \{ class: 'muted'/.test(app));
 check('pearson([1,2,3],[2,4,6]) = 1 and < 3 points → null', Math.abs(ctx.__p([1, 2, 3], [2, 4, 6]) - 1) < 1e-12 && ctx.__p([1, 2], [1, 2]) === null);
 console.log(`check-web · ${new Date().toISOString()} · node ${process.version}`);
 for (const [st, name, d] of results) console.log(`${st}  ${name}${d ? '  · ' + d : ''}`);

@@ -15,7 +15,7 @@ window.CALLDELTA_REAL_META = {
   {
    "ticker": "GOOGL",
    "company": "Alphabet Inc.",
-   "label": "Q2 26",
+   "label": "Q2 2026",
    "call_date": "2026-07-22",
    "source_page": "https://abc.xyz/investor/events/event-details/2026/2026-Q2-Earnings-Call-2026-GgTAq7Is0z/default.aspx",
    "source_url": "https://s206.q4cdn.com/479360582/files/doc_events/2026/Jul/22/2026_Q2_Earnings_Transcript.pdf"
@@ -23,7 +23,7 @@ window.CALLDELTA_REAL_META = {
   {
    "ticker": "META",
    "company": "Meta Platforms, Inc.",
-   "label": "Q2 26",
+   "label": "Q2 2026",
    "call_date": "2026-07-29",
    "source_page": "https://investor.atmeta.com/investor-events/default.aspx",
    "source_url": "https://s21.q4cdn.com/399680738/files/doc_financials/2026/q2/META-Q2-2026-Earnings-Call-Transcript.pdf"
@@ -57,37 +57,43 @@ window.CALLDELTA_REAL = {
     "name": "Azure & AI Infrastructure",
     "weight": 0.28,
     "mgmt": 0.65,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    },
    {
     "name": "Azure capacity, constraints & efficiency",
     "weight": 0.25,
     "mgmt": 0.0,
-    "qa": 0.5
+    "qa": 0.5,
+    "mgmt_missing": true
    },
    {
     "name": "Copilot & M365 Commercial",
     "weight": 0.22,
     "mgmt": 0.7,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    },
    {
     "name": "Foundry/Platform & Agentic Ecosystem",
     "weight": 0.2,
     "mgmt": 0.65,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    },
    {
     "name": "Model choice/architecture strategy",
     "weight": 0.2,
     "mgmt": 0.0,
-    "qa": 0.6
+    "qa": 0.6,
+    "mgmt_missing": true
    },
    {
     "name": "Overcapacity/pricing risk & margin protection",
     "weight": 0.2,
     "mgmt": 0.0,
-    "qa": 0.4
+    "qa": 0.4,
+    "mgmt_missing": true
    }
   ],
   "extracts": [
@@ -111,7 +117,7 @@ window.CALLDELTA_REAL = {
   "gamma": 1.5,
   "quarters": [
    {
-    "label": "Q2 26",
+    "label": "Q2 2026",
     "date": "2026-07-22",
     "mgmt": 0.75,
     "qa": 0.35,
@@ -128,37 +134,43 @@ window.CALLDELTA_REAL = {
     "name": "Google Cloud growth & backlog",
     "weight": 0.28,
     "mgmt": 0.85,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    },
    {
     "name": "AI Model Frontier Competition (Gemini)",
     "weight": 0.28,
     "mgmt": 0.0,
-    "qa": 0.5
+    "qa": 0.5,
+    "mgmt_missing": true
    },
    {
     "name": "CapEx & Capacity Constraints/TPU Allocation",
     "weight": 0.27,
     "mgmt": 0.0,
-    "qa": 0.15
+    "qa": 0.15,
+    "mgmt_missing": true
    },
    {
     "name": "AI models & infrastructure (Gemini, TPUs, CapEx)",
     "weight": 0.25,
     "mgmt": 0.7,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    },
    {
     "name": "Search & Ads monetization (AI Overviews/AI Mode)",
     "weight": 0.22,
     "mgmt": 0.7,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    },
    {
     "name": "Search & YouTube Monetization",
     "weight": 0.18,
     "mgmt": 0.0,
-    "qa": 0.6
+    "qa": 0.6,
+    "mgmt_missing": true
    }
   ],
   "extracts": [
@@ -183,7 +195,7 @@ window.CALLDELTA_REAL = {
   "gamma": 1.5,
   "quarters": [
    {
-    "label": "Q2 26",
+    "label": "Q2 2026",
     "date": "2026-07-29",
     "mgmt": 0.55,
     "qa": 0.45,
@@ -200,37 +212,43 @@ window.CALLDELTA_REAL = {
     "name": "AI-driven core business (recommendations & ads systems)",
     "weight": 0.3,
     "mgmt": 0.75,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    },
    {
     "name": "AI Lab Performance, Models & Open Source Strategy",
     "weight": 0.25,
     "mgmt": 0.0,
-    "qa": 0.55
+    "qa": 0.55,
+    "mgmt_missing": true
    },
    {
     "name": "Infrastructure & capex strategy",
     "weight": 0.2,
     "mgmt": 0.25,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    },
    {
     "name": "New products, agents & subscriptions (Meta One, business agents, glasses)",
     "weight": 0.2,
     "mgmt": 0.7,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    },
    {
     "name": "CapEx & Capital Planning (2027 outlook)",
     "weight": 0.2,
     "mgmt": 0.0,
-    "qa": 0.2
+    "qa": 0.2,
+    "mgmt_missing": true
    },
    {
     "name": "Financial results & guidance",
     "weight": 0.15,
     "mgmt": 0.35,
-    "qa": 0.0
+    "qa": 0.0,
+    "qa_missing": true
    }
   ],
   "extracts": [
