@@ -263,7 +263,7 @@ Four classes:
 
 - `AnthropicAnalyzer` — offers a `submit_analysis` tool whose input schema is
   the Pydantic schema, with `tool_choice` auto and a prompt line asking for the
-  call (Claude Sonnet 5 and Opus 5.5 reject a forced tool choice). A refusal, a
+  call (Claude Sonnet 5.5 and Opus 5.5 reject a forced tool choice). A refusal, a
   reply cut off at `max_tokens`, or a reply without the tool call raises.
 - `OpenAIAnalyzer` — uses `client.beta.chat.completions.parse()` which
   accepts the Pydantic class directly. Handles the schema massaging
@@ -464,9 +464,9 @@ on (ret, sector_ret, surprise) and replace the constants.
 The cache handles re-runs free, so the cost-conscious workflow is:
 
 ```bash
-# First pass with the default model (claude-sonnet-5)
+# First pass with the default model (claude-sonnet-5-5)
 python -m src.cli --tickers ... --quarters ... \
-    --provider anthropic --model claude-sonnet-5
+    --provider anthropic --model claude-sonnet-5-5
 
 # Re-run interesting subset with a stronger model of your choice — only those re-extract
 python -m src.cli --tickers NVDA,INTC --quarters ... \

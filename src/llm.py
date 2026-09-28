@@ -1,7 +1,7 @@
 """llm.py — one small, dependency-free way to call four kinds of LLM endpoint.
 
 Providers
-  anthropic           Claude, Messages API                         (default; model claude-sonnet-5)
+  anthropic           Claude, Messages API                         (default; model claude-sonnet-5-5)
   openai              OpenAI, Chat Completions API
   gemini              Google Gemini, generateContent API
   openai-compatible   any server that speaks the Chat Completions shape: Ollama, LM Studio, vLLM, most gateways
@@ -25,7 +25,7 @@ import urllib.parse
 import urllib.request
 
 PROVIDERS = ("anthropic", "openai", "gemini", "openai-compatible")
-DEFAULT_MODEL = {"anthropic": "claude-sonnet-5"}
+DEFAULT_MODEL = {"anthropic": "claude-sonnet-5-5"}
 DEFAULT_BASE = {
     "anthropic": "https://api.anthropic.com/v1",
     "openai": "https://api.openai.com/v1",
@@ -99,7 +99,7 @@ def parse_response(cfg, data):
     p = cfg["provider"]
     try:
         if p == "anthropic":
-            # Claude Sonnet 5 / Opus 5.5 think by default, so a reply holds thinking blocks next to the text: read by
+            # Claude Sonnet 5.5 / Opus 5.5 think by default, so a reply holds thinking blocks next to the text: read by
             # block type. A refusal or a reply cut off at max_tokens has no complete answer and is an error, not text.
             stop = data.get("stop_reason")
             if stop == "refusal":

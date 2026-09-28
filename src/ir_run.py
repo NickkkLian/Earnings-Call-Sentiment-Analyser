@@ -34,7 +34,7 @@ from .transcripts import Transcript, split_prepared_qa
 ROOT = Path(__file__).resolve().parent.parent
 UA = "Mozilla/5.0 (research script; CallDelta)"
 # US$ per million tokens, first-party Claude API list prices (input, output)
-PRICES = {"claude-sonnet-5": (2.00, 10.00), "claude-opus-5-5": (4.00, 20.00)}
+PRICES = {"claude-sonnet-5-5": (2.00, 10.00), "claude-sonnet-5": (2.00, 10.00), "claude-opus-5-5": (4.00, 20.00)}
 
 
 def fetch(url: str, dest: Path, sha256: str | None) -> bytes:
@@ -72,7 +72,7 @@ def spent_usd(model: str) -> tuple[int, int, float]:
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--manifest", default=str(ROOT / "data" / "ir-calls.json"))
-    ap.add_argument("--model", default="claude-sonnet-5", choices=sorted(PRICES))
+    ap.add_argument("--model", default="claude-sonnet-5-5", choices=sorted(PRICES))
     ap.add_argument("--max-usd", type=float, default=3.0, help="stop before the estimated spend passes this")
     ap.add_argument("--cache-dir", default=str(ROOT / "cache"))
     ap.add_argument("--out", default=str(ROOT / "docs" / "real-data.js"))
