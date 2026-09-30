@@ -54,7 +54,7 @@ Replace the fictional tickers with real ones FMP has transcripts for (most US-li
 %%{init: {"theme": "base", "themeVariables": {"darkMode": false, "fontFamily": "Inter, BlinkMacSystemFont, Segoe UI, Helvetica Neue, Helvetica, Arial", "primaryColor": "#dae7db", "mainBkg": "#dae7db", "primaryTextColor": "#1d1b24", "nodeTextColor": "#1d1b24", "textColor": "#1d1b24", "primaryBorderColor": "#2f5859", "nodeBorder": "#2f5859", "secondaryColor": "#fae8eb", "tertiaryColor": "#f7e9e8", "lineColor": "#5f7f76", "arrowheadColor": "#5f7f76", "defaultLinkColor": "#5f7f76", "edgeLabelBackground": "#fae8eb", "clusterBkg": "#f7e9e8", "clusterBorder": "#a8707a", "titleColor": "#7d2d44"}}}%%
 flowchart LR
   A["FMP transcript"] --> B["split_prepared_qa<br/>operator hand-off regex"]
-  B --> C["LLM extraction<br/>JSON schema in the prompt · 4 providers<br/>Pydantic SectionAnalysis"]
+  B --> C["LLM extraction<br/>JSON schema in the prompt · 5 providers<br/>Pydantic SectionAnalysis"]
   C --> D["CallAnalysis<br/>prepared · qa · gap"]
   E["yfinance prices + FMP EPS surprise"] --> F["residual_return<br/>r5 − β·sector − γ·surprise"]
   D --> G["signals.csv"]
@@ -69,7 +69,7 @@ flowchart LR
 | Layer | Choice |
 | --- | --- |
 | Transcripts | Financial Modeling Prep API, cached on disk |
-| LLM | Your choice of Claude, OpenAI, Gemini or an OpenAI-compatible server (`--provider`, see the compatibility table below); every reply is validated into the same Pydantic models |
+| LLM | Your choice of Claude, OpenAI, Gemini, an OpenAI-compatible server or your ChatGPT plan (`--provider`, see the compatibility table below); every reply is validated into the same Pydantic models |
 | Structured output | Default: the JSON schema in the prompt, parsed and validated, with one repair round. Optional `--structured native`: tool use (Anthropic) or structured outputs (OpenAI) |
 | Prices / EPS | yfinance + FMP earnings-surprises endpoint |
 | Wrangling | pandas |
@@ -93,7 +93,7 @@ CI runs all of the above on every push (Python 3.10 and 3.13; the eval score onl
 
 ## Choosing a model provider, caching
 
-Scoring works with Claude (default), OpenAI, Google Gemini or any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, gateways):
+Scoring works with Claude (default), OpenAI, Google Gemini, any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, gateways), or your own ChatGPT Plus/Pro plan with no API key:
 
 ```bash
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider anthropic                    # ANTHROPIC_API_KEY
@@ -101,6 +101,7 @@ python -m src.cli --tickers NWSC --quarters 2025Q2 --provider openai            
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider gemini --model your-model-id  # GEMINI_API_KEY
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider openai-compatible \
     --base-url http://localhost:11434/v1 --model your-model-id                             # LLM_API_KEY if the server needs one
+python -m src.cli --tickers NWSC --quarters 2025Q2 --provider chatgpt --model your-model-id # your ChatGPT plan, see below
 ```
 
 The same variables work from `.env` (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`). Claude defaults to `claude-sonnet-5-5` and OpenAI to `gpt-4o-mini`; Gemini and OpenAI-compatible endpoints need a model id. Sonnet 5.5 thinks before it answers and the thinking counts toward `max_tokens`, so requests allow 16,000 output tokens; a refusal or a reply cut off at the limit is an error, never a half-read answer.
@@ -113,6 +114,27 @@ The same variables work from `.env` (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`
 | OpenAI | `--provider openai` | Same checks against a local mock (sends `max_completion_tokens`, no `temperature`). Should work per OpenAI's documentation; **not run against the live API.** |
 | Google Gemini | `--provider gemini --model …` | Same checks against a local mock; key sent in the `x-goog-api-key` header. Should work per Google's documentation; **not run against the live API.** |
 | OpenAI-compatible | `--provider openai-compatible --base-url … --model …` | Same checks against a local mock. **Not run against a real Ollama, LM Studio or vLLM server.** |
+| ChatGPT plan (Continue with ChatGPT) | `--provider chatgpt --model …` after a one-time `python -m src.chatgpt_auth login` | Sign-in, refresh, sign-out and the Responses stream checked against a local mock of OpenAI's documented flow, with the ID token signed by a real RSA key (`tests/test_chatgpt_auth.py`), plus the analyzer end to end (`tests/test_llm_providers.py`); `tests/chatgpt_mutants.py` breaks each of 40 rules once and the tests catch every one. **Not yet signed in against the live service.** |
+
+### Continue with ChatGPT (your ChatGPT plan, no API key)
+
+With a ChatGPT Plus or Pro plan you can run the model step on that plan instead of an API key. This is OpenAI's official **Sign in with ChatGPT** flow for open-source, locally hosted apps ([OpenAI's documentation](https://developers.openai.com/siwc/token-sharing-open-source)); no unofficial endpoint and no scraped session is involved.
+
+```sh
+python -m src.chatgpt_auth login        # opens your browser: sign in to ChatGPT and allow the app to use your plan
+python -m src.chatgpt_auth models       # the model ids your plan can use
+python -m src.cli --tickers NWSC --quarters 2025Q2 --provider chatgpt --model a-model-id-from-that-list
+python -m src.chatgpt_auth status       # who is signed in and whether plan usage is on (never prints a token)
+python -m src.chatgpt_auth logout       # revokes the session at OpenAI, then clears the local tokens
+```
+
+**What it needs.** An eligible ChatGPT Plus or Pro plan. Other accounts can sign in, but OpenAI answers their requests with `subscription_sharing_user_not_eligible`; that error is shown as it came, with the other providers named. Nothing switches to another provider or to an API key on its own. On Plus, the five-hour usage limit is shared with every other app that uses your plan; usage and per-app limits are at [chatgpt.com/settings/usage](https://chatgpt.com/settings/usage).
+
+**Preview limits** ([OpenAI's list](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)). Responses API only; every request is sent with `store: false` and `stream: true`; fields such as `max_output_tokens` and `temperature` are not accepted, so this provider sends neither (the 16,000-token output allowance above does not apply to it).
+
+**How it works.** The first `login` registers "CallDelta" as an agent on your ChatGPT account (`client_id=dynamic_agent_client`, a browser callback on `http://127.0.0.1:1455/auth/callback` or another free port, PKCE, no client secret); later sign-ins reuse the client id OpenAI issued. The ID token is checked against OpenAI's published keys (RS256 signature, issuer, audience, expiry, nonce), and plan usage counts as on only when OpenAI grants `chatgpt.tokens.use.direct`. The signature check uses the standard library, because this project has no third-party dependencies; OpenAI's guide suggests a maintained JWT library where one can be used. Tokens are stored in `~/.config/calldelta/chatgpt/` (or `CHATGPT_AUTH_DIR`), one file per account, written atomically with mode 0600; never in this repository, never printed or logged. The access token is refreshed about five minutes before it expires, and the rotating refresh token is replaced at the same time.
+
+`--structured native` stays limited to Anthropic and OpenAI API keys; with `chatgpt` the default `json` mode is used.
 
 Transcripts and LLM responses are cached under `./cache/`. The LLM cache key is `(provider/mode, model, prompt hash, section, text)`, so changing the provider, model, structured-output mode or prompt re-runs, and repeating the same configuration is free.
 
@@ -130,11 +152,12 @@ Transcripts and LLM responses are cached under `./cache/`. The LLM cache key is 
 ```
 src/
   schema.py            Pydantic models — the contract every provider's output is validated against
-  llm.py               dependency-free HTTP adapter: Anthropic, OpenAI, Gemini, OpenAI-compatible
+  llm.py               dependency-free HTTP adapter: Anthropic, OpenAI, Gemini, OpenAI-compatible, ChatGPT plan
+  chatgpt_auth.py      Continue with ChatGPT: sign-in, token storage and refresh, Responses stream
   transcripts.py       FMP fetcher + prepared/Q&A splitter
   ir_run.py            the real run: companies' own transcripts (data/ir-calls.json) → docs/real-data.js
   prices.py            yfinance + EPS surprise + residual_return()
-  analyzer.py          LLM analyzer (any of the four providers, optional native structured output, content-addressed cache)
+  analyzer.py          LLM analyzer (any of the five providers, optional native structured output, content-addressed cache)
   pipeline.py          orchestrator → DataFrame
   export_dashboard.py  DataFrame → dashboard JSON
   eval.py              evaluation set scorer (+ --llm to populate, --break negative control)

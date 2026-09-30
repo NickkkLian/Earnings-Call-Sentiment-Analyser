@@ -35,9 +35,10 @@ def main(argv=None):
     ap.add_argument("--tickers", required=True, help="Comma-separated, e.g. NVDA,META,TSLA")
     ap.add_argument("--quarters", required=True,
                     help="Comma-separated YYYYQn, e.g. 2024Q3,2024Q4,2025Q1")
-    ap.add_argument("--provider", choices=["anthropic", "openai", "gemini", "openai-compatible"], default=None,
-                    help="default: LLM_PROVIDER or anthropic")
-    ap.add_argument("--model", default=None, help="required for gemini and openai-compatible (or LLM_MODEL)")
+    ap.add_argument("--provider", choices=["anthropic", "openai", "gemini", "openai-compatible", "chatgpt"],
+                    default=None, help="default: LLM_PROVIDER or anthropic; chatgpt = your ChatGPT Plus/Pro plan, "
+                                       "sign in first with `python -m src.chatgpt_auth login`")
+    ap.add_argument("--model", default=None, help="required for gemini, openai-compatible and chatgpt (or LLM_MODEL)")
     ap.add_argument("--base-url", default=None, help="endpoint base for openai-compatible, e.g. http://localhost:11434/v1")
     ap.add_argument("--structured", choices=["json", "native"], default=None,
                     help="json (default): schema in the prompt, validated locally — works with any model. "

@@ -1,16 +1,19 @@
-"""llm.py — one small, dependency-free way to call four kinds of LLM endpoint.
+"""llm.py — one small, dependency-free way to call five kinds of LLM endpoint.
 
 Providers
   anthropic           Claude, Messages API                         (default; model claude-sonnet-5-5)
   openai              OpenAI, Chat Completions API
   gemini              Google Gemini, generateContent API
   openai-compatible   any server that speaks the Chat Completions shape: Ollama, LM Studio, vLLM, most gateways
+  chatgpt             "Continue with ChatGPT": your ChatGPT Plus/Pro plan, no API key (OpenAI's official Sign in with
+                      ChatGPT flow; sign in once with `python -m src.chatgpt_auth login`, see src/chatgpt_auth.py)
 
 Configuration (environment variables)
-  LLM_PROVIDER   anthropic | openai | gemini | openai-compatible          default: anthropic
+  LLM_PROVIDER   anthropic | openai | gemini | openai-compatible | chatgpt   default: anthropic
   LLM_MODEL      model id. Required for every provider except anthropic   (no guessed defaults for other vendors)
   LLM_BASE_URL   endpoint base. Required for openai-compatible (e.g. http://localhost:11434/v1); optional elsewhere
   API key        ANTHROPIC_API_KEY | OPENAI_API_KEY | GEMINI_API_KEY | LLM_API_KEY (openai-compatible, optional)
+                 chatgpt needs no key: the signed-in session lives in ~/.config/<tool>/chatgpt/ (CHATGPT_AUTH_DIR)
 
 Model-agnostic by design: prompts ask for JSON in plain words, and callers validate the reply themselves
 (`extract_json`). No provider-only feature — tool use, JSON mode, response schemas — is a precondition, so a model
@@ -24,12 +27,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-PROVIDERS = ("anthropic", "openai", "gemini", "openai-compatible")
+PROVIDERS = ("anthropic", "openai", "gemini", "openai-compatible", "chatgpt")
 DEFAULT_MODEL = {"anthropic": "claude-sonnet-5-5"}
 DEFAULT_BASE = {
     "anthropic": "https://api.anthropic.com/v1",
     "openai": "https://api.openai.com/v1",
     "gemini": "https://generativelanguage.googleapis.com/v1beta",
+    "chatgpt": "https://api.openai.com/v1",
 }
 KEY_ENV = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY",
            "openai-compatible": "LLM_API_KEY"}
@@ -48,6 +52,30 @@ class ProviderError(RuntimeError):
     """The endpoint answered with an error or with a body this adapter cannot read."""
 
 
+def _siwc():
+    """chatgpt_auth, imported only when the chatgpt provider is used; the other providers never load it."""
+    try:
+        from . import chatgpt_auth  # package layout
+    except ImportError:
+        import chatgpt_auth
+    return chatgpt_auth
+
+
+def _chatgpt_config(env, model, base):
+    # The plan's access token may only go to OpenAI's API (or a loopback mock in tests), so LLM_BASE_URL cannot point
+    # it anywhere else. No automatic switch to another provider: a failure says how to pick one instead.
+    if base != DEFAULT_BASE["chatgpt"] and not base.startswith("http://127.0.0.1:"):
+        raise ConfigError("LLM_BASE_URL cannot be changed for chatgpt: the plan's token is only sent to "
+                          "https://api.openai.com/v1")
+    siwc = _siwc()
+    d = siwc.auth_dir(env)
+    try:
+        siwc.check_ready(d)
+    except siwc.ChatGPTError as e:
+        raise ConfigError(f"chatgpt: {e}") from None
+    return {"provider": "chatgpt", "model": model, "base_url": base, "api_key": "", "auth_dir": d}
+
+
 def config_from_env(env=None, default_provider="anthropic"):
     env = os.environ if env is None else env
     provider = (env.get("LLM_PROVIDER") or default_provider).strip().lower()
@@ -55,10 +83,14 @@ def config_from_env(env=None, default_provider="anthropic"):
         raise ConfigError(f"LLM_PROVIDER={provider!r} is not one of {', '.join(PROVIDERS)}")
     model = (env.get("LLM_MODEL") or DEFAULT_MODEL.get(provider) or "").strip()
     if not model:
-        raise ConfigError(f"LLM_MODEL is required for {provider} (use a model id from your provider's model list)")
+        where = (f"`{_siwc().LOGIN_COMMAND.replace(' login', ' models')}` lists the ones your plan can use"
+                 if provider == "chatgpt" else "use a model id from your provider's model list")
+        raise ConfigError(f"LLM_MODEL is required for {provider} ({where})")
     base = (env.get("LLM_BASE_URL") or DEFAULT_BASE.get(provider) or "").strip().rstrip("/")
     if not base:
         raise ConfigError("LLM_BASE_URL is required for openai-compatible (for Ollama: http://localhost:11434/v1)")
+    if provider == "chatgpt":
+        return _chatgpt_config(env, model, base)
     key = (env.get(KEY_ENV[provider]) or "").strip()
     if not key and provider != "openai-compatible":
         raise ConfigError(f"{KEY_ENV[provider]} is not set")
@@ -82,6 +114,12 @@ def build_request(cfg, system, user, max_tokens=2048):
         # OpenAI's own API deprecated max_tokens (reasoning models reject it); many compatible servers only know
         # max_tokens. Temperature is left at each model's default: several models reject any other value.
         body["max_completion_tokens" if p == "openai" else "max_tokens"] = max_tokens
+    elif p == "chatgpt":
+        # Responses API under the preview limits: store false, stream true, input array, no max_output_tokens
+        # (unsupported in this flow, so max_tokens is not sent). key is the OAuth access token.
+        url = f"{base}/responses"
+        headers |= {"authorization": f"Bearer {key}", "accept": "text/event-stream"}
+        body = _siwc().responses_body(model, system, user)
     elif p == "gemini":
         name = model[len("models/"):] if model.startswith("models/") else model
         url = f"{base}/models/{urllib.parse.quote(name, safe='')}:generateContent"
@@ -125,6 +163,8 @@ def complete(cfg, system, user, max_tokens=2048, timeout=600, opener=None):
     """One request, no retries. Returns (text, model). Raises ProviderError on HTTP errors and unreadable bodies.
 
     The timeout is long because a model that thinks before answering can take minutes on a whole call section."""
+    if cfg["provider"] == "chatgpt":
+        return _complete_chatgpt(cfg, system, user, timeout, opener)
     url, headers, body = build_request(cfg, system, user, max_tokens)
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
     open_ = opener or urllib.request.urlopen
@@ -141,6 +181,30 @@ def complete(cfg, system, user, max_tokens=2048, timeout=600, opener=None):
     text, model = parse_response(cfg, data)
     USAGE_LOG.append({"provider": cfg["provider"], "model": model, "usage": data.get("usage") or data.get("usageMetadata")})
     return text, model
+
+
+def _complete_chatgpt(cfg, system, user, timeout, opener):
+    """Streamed Responses call on the user's ChatGPT plan; refreshes the session first when it is near expiry.
+    A plan error (not eligible, usage limit, ...) stops here with OpenAI's code: nothing is retried elsewhere."""
+    siwc = _siwc()
+    try:
+        token = siwc.access_token(cfg["auth_dir"])
+        url, headers, body = build_request({**cfg, "api_key": token}, system, user)
+        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+        open_ = opener or urllib.request.urlopen
+        try:
+            with open_(req, timeout=timeout) as r:
+                text, model, usage = siwc.read_stream(r, r.headers.get("x-request-id"))
+        except urllib.error.HTTPError as e:
+            raise siwc.http_error(e.code, e.headers, e.read() if hasattr(e, "read") else b"") from None
+    except siwc.ChatGPTError as e:
+        err = ProviderError(f"chatgpt: {e}")
+        err.code = e.code
+        raise err from None
+    except (ValueError, UnicodeDecodeError) as e:
+        raise ProviderError(f"chatgpt: unreadable stream ({type(e).__name__})") from None
+    USAGE_LOG.append({"provider": "chatgpt", "model": model or cfg["model"], "usage": usage})
+    return text, model or cfg["model"]
 
 
 def extract_json(text, kind="array"):

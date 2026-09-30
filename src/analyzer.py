@@ -254,7 +254,8 @@ def make_analyzer(provider: str | None = None, model: str | None = None,
                   base_url: str | None = None, env: dict | None = None) -> CachedAnalyzer:
     """Build the analyzer for a provider.
 
-    provider    anthropic (default) | openai | gemini | openai-compatible      — or LLM_PROVIDER
+    provider    anthropic (default) | openai | gemini | openai-compatible | chatgpt   — or LLM_PROVIDER
+                (chatgpt = Continue with ChatGPT: your Plus/Pro plan, no key; `python -m src.chatgpt_auth login`)
     model       explicit > LLM_MODEL > ANTHROPIC_MODEL / OPENAI_MODEL > the defaults for those two
                 (claude-sonnet-5-5, gpt-4o-mini).
                 Gemini and OpenAI-compatible have no default: name a model.
