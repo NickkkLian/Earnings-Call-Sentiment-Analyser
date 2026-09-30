@@ -182,7 +182,7 @@ You can swap any single layer without touching the others.
 - **Provider-agnostic LLM layer** — by default all four providers (Anthropic, OpenAI,
   Gemini, OpenAI-compatible) get the JSON schema in the prompt, and the reply is parsed
   and validated with one repair round. `--structured native` switches Anthropic to
-  tool-use forced choice and OpenAI to `client.beta.chat.completions.parse(response_format=PydanticModel)`.
+  `client.messages.parse(output_format=PydanticModel)` and OpenAI to `client.beta.chat.completions.parse(response_format=PydanticModel)`.
   Every path produces the same Pydantic objects.
 - **Content-addressed caching** — keyed on
   `sha256(provider + model + prompt + section + text)`. Tweaking the prompt
@@ -261,10 +261,11 @@ fitted multi-factor model.
 
 Four classes:
 
-- `AnthropicAnalyzer` — offers a `submit_analysis` tool whose input schema is
-  the Pydantic schema, with `tool_choice` auto and a prompt line asking for the
-  call (Claude Sonnet 5.5 and Opus 5.5 reject a forced tool choice). A refusal, a
-  reply cut off at `max_tokens`, or a reply without the tool call raises.
+- `AnthropicAnalyzer` — uses the SDK's structured-outputs helper
+  `client.messages.parse(output_format=SectionAnalysis)` (needs `anthropic>=0.77.0`),
+  which sends the schema as `output_config.format` and validates the reply against the
+  Pydantic class. A refusal, a reply cut off at `max_tokens`, a reply that does not
+  validate, or a reply with no structured output raises.
 - `OpenAIAnalyzer` — uses `client.beta.chat.completions.parse()` which
   accepts the Pydantic class directly. Handles the schema massaging
   (`additionalProperties: false`, required-field promotion) that strict mode

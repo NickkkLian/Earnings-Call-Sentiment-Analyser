@@ -145,32 +145,32 @@ class AnthropicAnalyzer:
         self.model = model
 
     def analyze_section(self, *, ticker, quarter_label, section, text):
-        # Tool use carries the schema. Claude Sonnet 5.5 and Opus 5.5 reject a forced tool_choice, so the tool is offered
-        # with tool_choice auto and the prompt asks for it; a reply without the tool call is an error.
-        tool = {
-            "name": "submit_analysis",
-            "description": "Submit the structured earnings call section analysis.",
-            "input_schema": SectionAnalysis.model_json_schema(),
-        }
-        resp = self.client.messages.create(
-            model=self.model,
-            max_tokens=16000,   # thinking is on by default on Sonnet 5.5 and counts toward max_tokens
-            system=SYSTEM_PROMPT + "\n\nSubmit your analysis by calling the submit_analysis tool exactly once.",
-            tools=[tool],
-            tool_choice={"type": "auto"},
-            messages=[{
-                "role": "user",
-                "content": _user_prompt(section, text, ticker, quarter_label),
-            }],
-        )
+        # Structured outputs through the SDK's parse helper (anthropic>=0.77.0): it sends the schema as
+        # output_config.format, moves the bounds the API does not enforce (ge/le) into the descriptions, and
+        # validates the reply against SectionAnalysis itself, so there is no JSON handling here.
+        try:
+            resp = self.client.messages.parse(
+                model=self.model,
+                max_tokens=16000,   # thinking is on by default on Sonnet 5.5 and counts toward max_tokens
+                system=SYSTEM_PROMPT,
+                messages=[{
+                    "role": "user",
+                    "content": _user_prompt(section, text, ticker, quarter_label),
+                }],
+                output_format=SectionAnalysis,
+            )
+        except ValidationError as e:
+            # The helper validates while it builds the response, so a reply cut off at max_tokens, a refusal that
+            # came with text, or a value outside a bound the API does not enforce all surface here.
+            raise RuntimeError("Anthropic reply did not validate against SectionAnalysis (cut off at max_tokens, "
+                               f"declined, or out of bounds): {str(e)[:400]}") from e
         if resp.stop_reason == "refusal":
             raise RuntimeError("Anthropic declined the request (stop_reason=refusal)")
         if resp.stop_reason == "max_tokens":
-            raise RuntimeError("Anthropic reply hit max_tokens before the tool call finished")
-        for block in resp.content:
-            if block.type == "tool_use" and block.name == "submit_analysis":
-                return SectionAnalysis.model_validate(block.input)
-        raise RuntimeError("Anthropic response had no tool_use block")
+            raise RuntimeError("Anthropic reply hit max_tokens before the structured output finished")
+        if resp.parsed_output is None:
+            raise RuntimeError("Anthropic response had no structured output")
+        return resp.parsed_output
 
 
 # =========================================================================
@@ -259,7 +259,7 @@ def make_analyzer(provider: str | None = None, model: str | None = None,
     model       explicit > LLM_MODEL > ANTHROPIC_MODEL / OPENAI_MODEL > the defaults for those two
                 (claude-sonnet-5-5, gpt-4o-mini).
                 Gemini and OpenAI-compatible have no default: name a model.
-    structured  json (default, model-agnostic) | native (Anthropic tool use / OpenAI structured outputs only)
+    structured  json (default, model-agnostic) | native (Anthropic / OpenAI structured outputs only)
     base_url    LLM_BASE_URL; required for openai-compatible
     """
     env = dict(os.environ if env is None else env)

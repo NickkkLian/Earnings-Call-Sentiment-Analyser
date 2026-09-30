@@ -1,5 +1,5 @@
 # anthropic and openai SDKs: only used by --structured native; the default path is plain HTTP (src/llm.py)
-anthropic>=0.40.0
+anthropic>=0.77.0   # 0.77.0 added messages.parse(output_format=...) for structured outputs
 openai>=1.50.0
 pydantic>=2.7.0
 pandas>=2.2.0

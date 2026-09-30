@@ -42,7 +42,7 @@ def main(argv=None):
     ap.add_argument("--base-url", default=None, help="endpoint base for openai-compatible, e.g. http://localhost:11434/v1")
     ap.add_argument("--structured", choices=["json", "native"], default=None,
                     help="json (default): schema in the prompt, validated locally — works with any model. "
-                         "native: Anthropic tool use / OpenAI structured outputs (those two providers only)")
+                         "native: Anthropic / OpenAI structured outputs (those two providers only)")
     ap.add_argument("--cache-dir", default="./cache")
     ap.add_argument("--out", default="signals.csv")
     args = ap.parse_args(argv)
