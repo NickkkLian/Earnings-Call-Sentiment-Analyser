@@ -107,7 +107,7 @@ CI runs all of the above on every push (Python 3.10 and 3.13; the eval score onl
 
 ## Choosing a model provider, caching
 
-Scoring works with Claude (default), OpenAI, Google Gemini, any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, gateways), or your own ChatGPT Plus/Pro plan with no API key:
+Scoring works with Claude (default), OpenAI, Google Gemini, any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, gateways), or a ChatGPT Plus/Pro plan with no API key (that last one is built but not yet tried with a real sign-in):
 
 ```bash
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider anthropic                    # ANTHROPIC_API_KEY
@@ -115,7 +115,7 @@ python -m src.cli --tickers NWSC --quarters 2025Q2 --provider openai            
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider gemini --model your-model-id  # GEMINI_API_KEY
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider openai-compatible \
     --base-url http://localhost:11434/v1 --model your-model-id                             # LLM_API_KEY if the server needs one
-python -m src.cli --tickers NWSC --quarters 2025Q2 --provider chatgpt --model your-model-id # your ChatGPT plan, see below
+python -m src.cli --tickers NWSC --quarters 2025Q2 --provider chatgpt --model your-model-id # your ChatGPT plan (not yet tried live), see below
 ```
 
 The same variables work from `.env` (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`). Claude defaults to `claude-sonnet-5-5` and OpenAI to `gpt-4o-mini`; Gemini and OpenAI-compatible endpoints need a model id. Sonnet 5.5 thinks before it answers and the thinking counts toward `max_tokens`, so requests allow 16,000 output tokens; a refusal or a reply cut off at the limit is an error, never a half-read answer.
@@ -132,7 +132,9 @@ The same variables work from `.env` (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`
 
 ### Continue with ChatGPT (your ChatGPT plan, no API key)
 
-With a ChatGPT Plus or Pro plan you can run the model step on that plan instead of an API key. This is OpenAI's official **Sign in with ChatGPT** flow for open-source, locally hosted apps ([OpenAI's documentation](https://developers.openai.com/siwc/token-sharing-open-source)); no unofficial endpoint and no scraped session is involved.
+**Status: not yet tried with a real sign-in.** The flow is built from OpenAI's documentation and tested against a local mock of it. Nobody has signed in to the live service with this tool, so everything below describes what the documentation says should happen, not something that has been seen to work.
+
+This provider is meant to run the model step on a ChatGPT Plus or Pro plan instead of an API key. It follows OpenAI's official **Sign in with ChatGPT** flow for open-source, locally hosted apps ([OpenAI's documentation](https://developers.openai.com/siwc/token-sharing-open-source)); no unofficial endpoint and no scraped session is involved.
 
 ```sh
 python -m src.chatgpt_auth login        # opens your browser: sign in to ChatGPT and allow the app to use your plan
@@ -142,11 +144,11 @@ python -m src.chatgpt_auth status       # who is signed in and whether plan usag
 python -m src.chatgpt_auth logout       # revokes the session at OpenAI, then clears the local tokens
 ```
 
-**What it needs.** An eligible ChatGPT Plus or Pro plan. Other accounts can sign in, but OpenAI answers their requests with `subscription_sharing_user_not_eligible`; that error is shown as it came, with the other providers named. Nothing switches to another provider or to an API key on its own. On Plus, the five-hour usage limit is shared with every other app that uses your plan; usage and per-app limits are at [chatgpt.com/settings/usage](https://chatgpt.com/settings/usage).
+**What it needs** (per OpenAI's documentation). An eligible ChatGPT Plus or Pro plan. Other accounts can sign in, but OpenAI answers their requests with `subscription_sharing_user_not_eligible`; that error is shown as it came, with the other providers named. Nothing switches to another provider or to an API key on its own. On Plus, the five-hour usage limit is shared with every other app that uses your plan; usage and per-app limits are at [chatgpt.com/settings/usage](https://chatgpt.com/settings/usage).
 
 **Preview limits** ([OpenAI's list](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)). Responses API only; every request is sent with `store: false` and `stream: true`; fields such as `max_output_tokens` and `temperature` are not accepted, so this provider sends neither (the 16,000-token output allowance above does not apply to it).
 
-**How it works.** The first `login` registers "CallDelta" as an agent on your ChatGPT account (`client_id=dynamic_agent_client`, a browser callback on `http://127.0.0.1:1455/auth/callback` or another free port, PKCE, no client secret); later sign-ins reuse the client id OpenAI issued. The ID token is checked against OpenAI's published keys (RS256 signature, issuer, audience, expiry, nonce), and plan usage counts as on only when OpenAI grants `chatgpt.tokens.use.direct`. The signature check uses the standard library, because `src/chatgpt_auth.py` and `src/llm.py` are written without third-party packages (the rest of the project is not: `requirements.txt` lists nine); OpenAI's guide suggests a maintained JWT library where one can be used. Tokens are stored in `~/.config/calldelta/chatgpt/` (or `CHATGPT_AUTH_DIR`), one file per account, written atomically with mode 0600; never in this repository, never printed or logged. The access token is refreshed about five minutes before it expires, and the rotating refresh token is replaced at the same time.
+**How it is built.** The first `login` registers "CallDelta" as an agent on your ChatGPT account (`client_id=dynamic_agent_client`, a browser callback on `http://127.0.0.1:1455/auth/callback` or another free port, PKCE, no client secret); later sign-ins reuse the client id OpenAI issued. The ID token is checked against OpenAI's published keys (RS256 signature, issuer, audience, expiry, nonce), and plan usage counts as on only when OpenAI grants `chatgpt.tokens.use.direct`. The signature check uses the standard library, because `src/chatgpt_auth.py` and `src/llm.py` are written without third-party packages (the rest of the project is not: `requirements.txt` lists nine); OpenAI's guide suggests a maintained JWT library where one can be used. Tokens are stored in `~/.config/calldelta/chatgpt/` (or `CHATGPT_AUTH_DIR`), one file per account, written atomically with mode 0600; never in this repository, never printed or logged. The access token is refreshed about five minutes before it expires, and the rotating refresh token is replaced at the same time.
 
 `--structured native` stays limited to Anthropic and OpenAI API keys; with `chatgpt` the default `json` mode is used.
 
