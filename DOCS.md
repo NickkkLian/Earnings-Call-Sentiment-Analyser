@@ -86,7 +86,7 @@ the prompt without re-pulling transcripts.
 | FMP for transcripts | Has a workable API. Seeking Alpha doesn't anymore; scraping fights paywalls. |
 | Pydantic schema | Single source of truth every provider's output is validated against (the schema goes into the prompt; Anthropic and OpenAI can also use native structured output). |
 | LLM-agnostic core | Lets you A/B providers and models; the schema makes outputs comparable. |
-| yfinance | Free, fine for portfolio scope. Polygon/Bloomberg if going further. |
+| yfinance | Free and enough for a twelve-call run. Polygon/Bloomberg if going further. |
 | Static dashboard in `docs/` | Plain HTML, CSS and JS with hand-drawn SVG charts: no framework, no build step, no CDN scripts, so GitHub Pages serves it as it is. |
 | On-disk cache by content hash | LLM calls deduplicated by `(provider, model, prompt, text)`. Re-running is free. |
 
@@ -174,7 +174,7 @@ You can swap any single layer without touching the others.
 | **Trajectory chart** | Mgmt vs Q&A tone over 8 quarters. Gap shaded between them. | Spots multi-quarter drift; e.g., management staying rosy while analysts turn skeptical. |
 | **Topic emphasis** | LLM-extracted themes with weight bar + per-section tone. Wide gaps flagged. | Surfaces *where* analysts are pushing back. |
 | **Sentiment gap vs residual return scatter** | Each dot is one call. X = framing gap, Y = residual return. | The actual research question, visualized. |
-| **Notable extracts** | Tagged passages: confident / hedging / evasion / admission. | Qualitative texture; specific quotes a recruiter can read in 10 seconds. |
+| **Notable extracts** | Tagged passages: confident / hedging / evasion / admission. | Qualitative texture; specific quotes a reader can check in 10 seconds. |
 | **Methodology panel** | Prose + JSON schema excerpt. | Self-documenting; defends the approach. |
 
 ### Technical features under the hood
@@ -251,8 +251,8 @@ residual = ret_5d − β·sector_5d − γ·eps_surprise
 with `β=1.0`, `γ=1.5` as placeholders. Tuning these is a natural extension.
 
 `SECTOR_PROXY` maps tickers to sector ETFs. Falls back to SPY for unknown
-tickers — fine for a portfolio project; for serious work, replace with a
-fitted multi-factor model.
+tickers. This is a crude control; a fitted multi-factor model would be the
+proper one.
 
 `fetch_eps_surprise` pulls actual vs. estimated EPS from FMP and computes
 `(actual − estimate) / |estimate|`.
@@ -495,9 +495,9 @@ python -m src.cli --tickers NVDA,INTC --quarters ... \
 **This is a methodology demo, not a tradeable signal.** A few things to be
 upfront about:
 
-- **Sample size.** A few hundred calls is small. Don't claim the
-  sentiment-gap → residual-return correlation as predictive without
-  out-of-sample validation across many more calls.
+- **Sample size.** The real run is twelve calls, and even a few hundred would
+  be small. Don't claim the sentiment-gap → residual-return correlation as
+  predictive without out-of-sample validation across many more calls.
 - **Lookahead-bias risk.** All returns are anchored to the actual call date.
   But: pre-market vs post-market reporting matters, and we treat them
   identically. For banks (often pre-market) this is a real distortion.

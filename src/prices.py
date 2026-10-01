@@ -21,8 +21,8 @@ DEFAULT_PROXY = "SPY"
 
 # Sector ETF proxies. For the residual-return calculation we beta against
 # the proxy, so we want one that's reasonably tight to the ticker's
-# fundamentals — sector-ETF is crude but workable for a portfolio project.
-# Production work would fit a proper multi-factor model.
+# fundamentals. A sector ETF is a crude control; a fitted multi-factor model
+# would be the proper one.
 SECTOR_PROXY: dict[str, str] = {
     # Semiconductors / hardware → SOXX
     **dict.fromkeys([
@@ -185,9 +185,10 @@ def compute_reaction(ticker: str, call_date: str,
                      beta: float = 1.0, gamma: float = 1.5) -> PriceReaction:
     """Compute the price reaction for a given call.
 
-    `gamma` weights the EPS-surprise control. 1.5 is a rough rule of thumb
-    (a 1% beat moves the stock ~1.5% on average for large-cap tech).
-    Replace with a fitted coefficient when you have enough samples.
+    `gamma` weights the EPS-surprise control. 1.5 is a hand-picked placeholder, never fitted. On the
+    twelve real calls (docs/real-data.js) gamma * surprise is larger than the sector-adjusted return
+    every time, so the residual mostly restates the EPS surprise; the dashboard marks each such call.
+    Replace it with a fitted coefficient when there are enough calls to fit one.
     """
     import yfinance as yf  # imported here so the pure helpers above stay importable without it
 

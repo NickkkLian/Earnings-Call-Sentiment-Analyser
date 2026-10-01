@@ -4,19 +4,33 @@
 
 **Call tone vs. analyst pushback — not a trading signal.**
 
-An earnings call has two halves: what management chose to say, and what analysts made them answer. CallDelta scores each half separately with a fixed extraction schema, tracks the *gap* between them across quarters, and correlates it with the post-call return **after** removing the sector move and the EPS surprise — the part of the price reaction that the words, not the numbers, might explain.
+An earnings call has two halves: what management chose to say, and what analysts made them answer. CallDelta scores each half separately with a fixed extraction schema, tracks the *gap* between them across quarters, and sets that gap next to the price move after the call.
 
-> Research tooling, not a trading signal. The dashboard opens on **one real run: the four most recent earnings calls of Microsoft (FY26 Q1–Q4), Alphabet and Meta (Q3 2025–Q2 2026)**, twelve calls scored by `claude-sonnet-5` on 2026-09-25 from the transcripts each company publishes on its own investor-relations site. Four points per company show how the scores moved; they are far too few to show whether tone predicts returns, and the page says so next to the correlation.
+**What it is.** A small, tested pipeline (transcript → the two halves → model scores validated against one schema → a static page) and **one real run of it: twelve calls**, the four most recent of Microsoft (FY26 Q1–Q4), Alphabet and Meta (Q3 2025–Q2 2026), scored by `claude-sonnet-5` on 2026-09-25 from the transcripts each company publishes on its own investor-relations site.
+
+**What it is not.** Not a trading signal and not a finding. Twelve calls cannot show whether tone predicts returns. Three limits show up in the real run, and the page states each one where it applies:
+
+- **The "residual return" is not a return.** It subtracts 1.5 × the EPS surprise, a hand-picked constant. On 12 of the 12 calls that term is larger than the return after the sector move, so the residual mostly restates the EPS surprise with its sign flipped; three of them are −125%, −323% and +114%, which no return can be. The arithmetic is right and the page re-derives it; the constant is the weak part (see [Honest caveats](#honest-caveats)).
+- **No topic was matched across the two halves.** Topics are matched by name, and on the latest call of each of the three companies none matched (18 of 18 topics belong to one half), so the topic-level gap has nothing to show on this data.
+- **One run of one model**, not checked against human labels.
 
 [![Check](https://img.shields.io/github/actions/workflow/status/NickkkLian/Earnings-Call-Sentiment-Analyser/check.yml?branch=main&label=check&style=flat-square&labelColor=2f5859)](https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser/actions/workflows/check.yml)
 
-![CallDelta dashboard: KPI strip, management vs analyst tone trajectory, topic emphasis, gap-vs-residual scatter and tagged extracts](docs/screenshot-dashboard.png)
+![CallDelta dashboard on Meta's Q2 2026 call (real data): management tone +0.55, analyst tone +0.45, gap +0.10, with the page's own warning about the residual](docs/screenshot-dashboard.png)
+
+The screenshot is the Meta tab ([open it](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/#META)). The page opens on Microsoft, whose latest call scored the same tone for both halves (gap 0.00).
 
 ## Try it
 
-**In the browser** — open the [dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/) (static, no server) or `docs/index.html` from a clone. It opens on the twelve real calls above, with a link to each call's transcript page; **Load JSON** (or drag a file onto the page) replaces them with your own pipeline output, validated for shape first; **Sample JSON** (under the schema in the Methodology section) downloads a **synthetic** example file (fictional companies, invented numbers) so you can see the schema.
+```bash
+git clone https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser && cd Earnings-Call-Sentiment-Analyser
+python3 -m http.server --directory docs 8000     # then open http://localhost:8000 (no install, no key)
+node docs/check-web.mjs                          # the page's own checks; prints how many calls carry the residual warning
+```
 
-**What the real data contains.** Scores for the prepared remarks and for the analyst Q&A, topics, EPS surprise and the 5-day returns (EPS estimates and prices from Yahoo Finance via yfinance). Quotes come only from the prepared remarks of each company's latest call: at most 25 words each, checked word for word against the transcript, a passage with an elision or a mid-sentence fragment dropped. Analyst questions are scored but never quoted, and no analyst is named. Two companies carry a caveat on the page, taken from what they said on the calls: Alphabet's EPS in Q3 2025, Q1 2026 and Q2 2026 includes unrealized gains on equity securities, and Meta's includes a one-time tax charge (Q3 2025) and a tax benefit (Q1 2026). In those quarters the EPS-surprise control swamps the residual, so those residuals are not meaningful.
+**In the browser** — open the [dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/) (static, no server) or serve `docs/` from a clone as above. It opens on the twelve real calls above, with a link to each call's transcript page; **Load JSON** (or drag a file onto the page) replaces them with your own pipeline output, validated for shape first; **Sample JSON** (under the schema in the Methodology section) downloads a **synthetic** example file (fictional companies, invented numbers) so you can see the schema.
+
+**What the real data contains.** Scores for the prepared remarks and for the analyst Q&A, topics, EPS surprise and the 5-day returns (EPS estimates and prices from Yahoo Finance via yfinance). Quotes come only from the prepared remarks of each company's latest call: at most 25 words each, checked word for word against the transcript, a passage with an elision or a mid-sentence fragment dropped. Analyst questions are scored but never quoted, and no analyst is named. Two companies carry a caveat on the page, taken from what they said on the calls: Alphabet's EPS in Q3 2025, Q1 2026 and Q2 2026 includes unrealized gains on equity securities, and Meta's includes a one-time tax charge (Q3 2025) and a tax benefit (Q1 2026). In those quarters the EPS-surprise control swamps the residual, so those residuals are not meaningful; the page also marks every call (all twelve in this run) where that control is larger than the return after the sector move.
 
 **Re-run it** — `data/ir-calls.json` lists each call's transcript URL and the SHA-256 of the file that was scored (Word files are read with the standard library, PDFs with `pdfminer.six`, MIT-licensed):
 
@@ -43,9 +57,9 @@ Replace the fictional tickers with real ones FMP has transcripts for (most US-li
 ## What is interesting here
 
 1. **Section-level decomposition.** Prepared remarks and Q&A are scored separately. The gap between them — how rosy management sounds vs. how sceptical analysts are — is the headline signal.
-2. **Topic-level sentiment.** Each call is broken into 4–6 themes with separate management and Q&A tone per topic; wide topic gaps show where analysts are pushing back. Q&A-only topics (analysts raised something management did not) are surfaced on purpose.
+2. **Topic-level sentiment.** Each call is broken into 4–6 themes with separate management and Q&A tone per topic; a wide gap on a topic both halves discussed shows where analysts are pushing back. Q&A-only topics (analysts raised something management did not) are surfaced on purpose. Topics are matched across the halves by name only: on the real run none matched, so every topic on the page belongs to one half, and each percentage is a share of that half, not of the whole call.
 3. **Tagged passages.** The model extracts and tags notable quotes — *confident, hedging, evasion, admission, contradiction* — not just scores.
-4. **Residual return as the target.** Sentiment is correlated with the 5-day return net of the sector ETF move and net of the EPS surprise, not with the raw return (which is mostly the beat).
+4. **Residual return as the target.** Sentiment is set against the 5-day return net of the sector ETF move and net of γ × the EPS surprise, not against the raw return. γ = 1.5 is a placeholder that was never fitted, and on the real run it dominates the result (see the caveats).
 5. **Multi-quarter trajectory.** Single-call sentiment is noise; the *change* in tone across quarters is where any signal would live.
 
 ## How it fits together
@@ -110,7 +124,7 @@ The same variables work from `.env` (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`
 
 | Provider | Selected with | What has been run |
 |---|---|---|
-| Claude (Anthropic) | `--provider anthropic` (default) | Request and reply format, schema-in-prompt, validation, repair round and caching checked against a local mock of the documented API (`tests/test_llm_providers.py`). **Run against the live API**: the evaluation set on 2026-09-22 with `claude-haiku-4-5-20251001` and on 2026-09-25 with `claude-sonnet-5` (30 passages and 10 guidance snippets, every one tagged as the set expects both times; `eval/llm-cache.json` holds the second run), and the three real calls on the dashboard on 2026-09-25 with `claude-sonnet-5`. `--structured native` (`client.messages.parse`) is checked through the real SDK against a local mock (`tests/test_anthropic_native.py`), **not run against the live API**. |
+| Claude (Anthropic) | `--provider anthropic` (default) | Request and reply format, schema-in-prompt, validation, repair round and caching checked against a local mock of the documented API (`tests/test_llm_providers.py`). **Run against the live API**: the evaluation set on 2026-09-22 with `claude-haiku-4-5-20251001` and on 2026-09-25 with `claude-sonnet-5` (30 passages and 10 guidance snippets, every one tagged as the set expects both times; `eval/llm-cache.json` holds the second run), and the twelve real calls on the dashboard on 2026-09-25 with `claude-sonnet-5`. `--structured native` (`client.messages.parse`) is checked through the real SDK against a local mock (`tests/test_anthropic_native.py`), **not run against the live API**. |
 | OpenAI | `--provider openai` | Same checks against a local mock (sends `max_completion_tokens`, no `temperature`). Should work per OpenAI's documentation; **not run against the live API.** |
 | Google Gemini | `--provider gemini --model …` | Same checks against a local mock; key sent in the `x-goog-api-key` header. Should work per Google's documentation; **not run against the live API.** |
 | OpenAI-compatible | `--provider openai-compatible --base-url … --model …` | Same checks against a local mock. **Not run against a real Ollama, LM Studio or vLLM server.** |
@@ -132,7 +146,7 @@ python -m src.chatgpt_auth logout       # revokes the session at OpenAI, then cl
 
 **Preview limits** ([OpenAI's list](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)). Responses API only; every request is sent with `store: false` and `stream: true`; fields such as `max_output_tokens` and `temperature` are not accepted, so this provider sends neither (the 16,000-token output allowance above does not apply to it).
 
-**How it works.** The first `login` registers "CallDelta" as an agent on your ChatGPT account (`client_id=dynamic_agent_client`, a browser callback on `http://127.0.0.1:1455/auth/callback` or another free port, PKCE, no client secret); later sign-ins reuse the client id OpenAI issued. The ID token is checked against OpenAI's published keys (RS256 signature, issuer, audience, expiry, nonce), and plan usage counts as on only when OpenAI grants `chatgpt.tokens.use.direct`. The signature check uses the standard library, because this project has no third-party dependencies; OpenAI's guide suggests a maintained JWT library where one can be used. Tokens are stored in `~/.config/calldelta/chatgpt/` (or `CHATGPT_AUTH_DIR`), one file per account, written atomically with mode 0600; never in this repository, never printed or logged. The access token is refreshed about five minutes before it expires, and the rotating refresh token is replaced at the same time.
+**How it works.** The first `login` registers "CallDelta" as an agent on your ChatGPT account (`client_id=dynamic_agent_client`, a browser callback on `http://127.0.0.1:1455/auth/callback` or another free port, PKCE, no client secret); later sign-ins reuse the client id OpenAI issued. The ID token is checked against OpenAI's published keys (RS256 signature, issuer, audience, expiry, nonce), and plan usage counts as on only when OpenAI grants `chatgpt.tokens.use.direct`. The signature check uses the standard library, because `src/chatgpt_auth.py` and `src/llm.py` are written without third-party packages (the rest of the project is not: `requirements.txt` lists nine); OpenAI's guide suggests a maintained JWT library where one can be used. Tokens are stored in `~/.config/calldelta/chatgpt/` (or `CHATGPT_AUTH_DIR`), one file per account, written atomically with mode 0600; never in this repository, never printed or logged. The access token is refreshed about five minutes before it expires, and the rotating refresh token is replaced at the same time.
 
 `--structured native` stays limited to Anthropic and OpenAI API keys; with `chatgpt` the default `json` mode is used.
 
@@ -140,10 +154,11 @@ Transcripts and LLM responses are cached under `./cache/`. The LLM cache key is 
 
 ## Honest caveats
 
-- **Sample size.** A few hundred calls is small. Treat the sentiment-gap → residual-return correlations as illustrative methodology, not a tradeable signal.
+- **Sample size.** The real run is twelve calls, four per company. That shows the method runs end to end; it cannot show a relationship. Every correlation on the page is an illustration of the method.
 - **Lookahead bias.** The pipeline anchors all returns to the actual call date. Don't be cute with intraday data.
-- **EPS-surprise control is rough.** Production work would fit `γ` per-ticker or per-sector instead of using a constant. Easy upgrade.
-- **Sector proxy is crude.** SOXX / XLC / XLY etc. — fine for a portfolio project, replace with a proper factor model for real work.
+- **The EPS-surprise control is a placeholder, and it dominates.** `γ = 1.5` was picked by hand and never fitted. On the real run γ × surprise is larger than the sector-adjusted return on 12 of 12 calls, so the residual is mostly −1.5 × the EPS surprise. Where reported EPS carries one-off items (Alphabet's unrealized gains, Meta's tax items) the surprise is 57% to 214% in size and the residual comes out at −125%, −323%, +114% and −95%. This is not an arithmetic or units error (every value is a fraction, and the page re-derives each residual from its parts); the constant is wrong for this use. Fitting γ, or measuring the surprise on adjusted EPS, needs many more calls than this run has, so it is stated here and on the page instead of patched.
+- **Sector proxy is crude.** One sector ETF per ticker (IGV, XLC, SOXX, …) with β fixed at 1; a factor model would be the proper control.
+- **Topics are matched by name.** A topic counts as discussed in both halves only when one name contains the other. The model names topics freely, so on the real run nothing matched. Matching by meaning is not built.
 
 **Not verified here:** the FMP transcript path has not been run for this revision (the real run used the companies' own transcripts, and EPS from Yahoo Finance because no FMP key was set); network calls are not covered by tests; the dashboard was checked in Chrome only; the model's scores are one run of one model, not checked against human labels on these calls.
 
@@ -152,7 +167,7 @@ Transcripts and LLM responses are cached under `./cache/`. The LLM cache key is 
 ```
 src/
   schema.py            Pydantic models — the contract every provider's output is validated against
-  llm.py               dependency-free HTTP adapter: Anthropic, OpenAI, Gemini, OpenAI-compatible, ChatGPT plan
+  llm.py               standard-library HTTP adapter: Anthropic, OpenAI, Gemini, OpenAI-compatible, ChatGPT plan
   chatgpt_auth.py      Continue with ChatGPT: sign-in, token storage and refresh, Responses stream
   transcripts.py       FMP fetcher + prepared/Q&A splitter
   ir_run.py            the real run: companies' own transcripts (data/ir-calls.json) → docs/real-data.js

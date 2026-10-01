@@ -13,7 +13,7 @@ vm.runInNewContext(fs.readFileSync(path.join(HERE, 'demo-data.js'), 'utf8'), san
 const app = fs.readFileSync(path.join(HERE, 'app.js'), 'utf8');
 const validateSrc = app.slice(app.indexOf('const REQ_Q ='), app.indexOf('function toast('));
 const pearsonSrc = app.slice(app.indexOf('function pearson('), app.indexOf('/* ---------- render'));
-const ctx = { console }; vm.runInNewContext(validateSrc + '\n' + pearsonSrc + '\nglobalThis.__v = validate; globalThis.__p = pearson; globalThis.__r = reconcile;', ctx);
+const ctx = { console }; vm.runInNewContext(validateSrc + '\n' + pearsonSrc + '\nglobalThis.__v = validate; globalThis.__p = pearson; globalThis.__r = reconcile; globalThis.__cd = controlDominates; globalThis.__ts = topicShare; globalThis.__tn = topicsNote;', ctx);
 const demo = sandbox.window.CALLDELTA_DEMO;
 check('demo data has 4 fictional tickers × 8 quarters', Object.keys(demo).length === 4 && Object.values(demo).every(c => c.quarters.length === 8));
 check('demo data passes the loader validation', ctx.__v(demo) === null, String(ctx.__v(demo)));
@@ -53,6 +53,14 @@ check('the page opens on the real data and Sample JSON downloads the synthetic f
 check('a topic one section did not discuss is flagged, so the page shows a dash instead of a 0.00 tone', Object.values(real).every(c => c.topics.every(t => (t.mgmt_missing === true) + (t.qa_missing === true) < 2)) && /t\.qa_missing === true \? h\('span', \{ class: 'muted'/.test(app));
 check('with fewer than 30 calls the correlation is labelled as too few points for a finding', /qs\.length < 30 \? ` — far too few points for r to show a relationship/.test(app));
 check('the residual axis picks its step so it draws at most about six gridlines', /step = \[0\.01, 0\.02, 0\.05, 0\.1, 0\.2, 0\.25, 0\.5, 1, 2, 5\]\.find\(s => \(ymax - ymin\) \/ s <= 6\)/.test(app));
+// a topic's weight is a share of one half of the call (prepared remarks or Q&A), so the page must never call it a share of the call
+check('a topic share names the half it is a share of, and the page nowhere says "% of call"', ctx.__ts({ weight: 0.28, mgmt: 0.7, qa: 0, qa_missing: true }) === '28% of remarks' && ctx.__ts({ weight: 0.22, mgmt: 0, qa: 0.5, mgmt_missing: true }) === '22% of Q&A' && ctx.__ts({ weight: 0.25, mgmt: 0.7, qa: 0.2 }) === '25% of each half' && !/% of call/.test(app) && !/share of airtime/.test(app));
+const oneSided = Object.values(real).filter(c => c.topics.every(t => t.mgmt_missing === true || t.qa_missing === true));
+check('where no topic was named in both halves the page says there is no topic-level gap, and where one was it counts them', oneSided.every(c => /^No topic was named in both halves/.test(ctx.__tn(c.topics))) && /^1 of 2 topics was named in both halves/.test(ctx.__tn([{ weight: 0.5, mgmt: 0.1, qa: 0.2 }, { weight: 0.5, mgmt: 0.1, qa: 0, qa_missing: true }])) && !/'Wide gaps show where analysts push back/.test(app), `${oneSided.length}/${Object.keys(real).length} real companies have no topic in both halves`);
+// the residual is flagged wherever the EPS-surprise control (γ × surprise) is larger than the return after the sector move
+const co = { beta: 1, gamma: 1.5 }, big = { ret_5d: 0.05, sector_5d: 0.01, eps_surprise: 0.5, residual_5d: 0.05 - 0.01 - 0.75 }, small = { ret_5d: 0.05, sector_5d: 0.01, eps_surprise: 0.01, residual_5d: 0.05 - 0.01 - 0.015 };
+const swampedReal = Object.values(real).flatMap(c => c.quarters.map(q => ctx.__cd(c, q))).filter(Boolean).length;
+check('the residual warning fires when the EPS-surprise control outweighs the sector-adjusted return, not otherwise, and never without γ', ctx.__cd(co, big) === true && ctx.__cd(co, small) === false && ctx.__cd({ beta: 1 }, big) === false && /controlDominates\(c, cur\) \? h\('p', \{ class: 'company-note'/.test(app) && /swamped \? `In \$\{swamped\} of \$\{qs\.length\}/.test(app), `${swampedReal}/${meta.calls.length} real calls carry the warning`);
 check('pearson([1,2,3],[2,4,6]) = 1 and < 3 points → null', Math.abs(ctx.__p([1, 2, 3], [2, 4, 6]) - 1) < 1e-12 && ctx.__p([1, 2], [1, 2]) === null);
 console.log(`check-web · ${new Date().toISOString()} · node ${process.version}`);
 for (const [st, name, d] of results) console.log(`${st}  ${name}${d ? '  · ' + d : ''}`);

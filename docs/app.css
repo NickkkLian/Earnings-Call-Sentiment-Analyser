@@ -310,7 +310,8 @@ dialog table{font-size:var(--text-sm)}dialog td{padding:2px var(--space-3) 2px 0
 .chart .legend{display:flex;flex-wrap:wrap;gap:var(--space-4);font-size:var(--text-xs);color:var(--text-2);margin-top:var(--space-2)}
 .chart .legend i{display:inline-block;width:12px;height:3px;vertical-align:middle;margin-right:6px}
 .topics{display:grid;gap:var(--space-3)}
-.topic .head{display:flex;justify-content:space-between;font-size:var(--text-xs)}
+.topic .head{display:flex;justify-content:space-between;gap:var(--space-2);font-size:var(--text-xs)}
+.topic .head span{flex:none;white-space:nowrap}   /* "25% of remarks" stays on one line; the topic name wraps instead */
 .topic .bar{height:6px;background:var(--surface-2);border-radius:2px;margin:4px 0}
 .topic .bar i{display:block;height:100%;background:var(--viz-seq-400);border-radius:2px}
 .topic .tones{display:flex;gap:var(--space-3);font:var(--weight-regular) var(--text-xs)/1 var(--font-mono);align-items:center}
