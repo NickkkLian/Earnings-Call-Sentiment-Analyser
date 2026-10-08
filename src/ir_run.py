@@ -34,7 +34,9 @@ from .transcripts import Transcript, split_prepared_qa
 ROOT = Path(__file__).resolve().parent.parent
 UA = "Mozilla/5.0 (research script; CallDelta)"
 # US$ per million tokens, first-party Claude API list prices (input, output)
-PRICES = {"claude-sonnet-5-5": (2.00, 10.00), "claude-sonnet-5": (2.00, 10.00), "claude-opus-5-5": (4.00, 20.00)}
+# Haiku 5.5: the price for prompts up to 100,000 tokens; a longer prompt costs five times as much (0.50, 2.50).
+PRICES = {"claude-sonnet-5-5": (2.00, 10.00), "claude-sonnet-5": (2.00, 10.00), "claude-opus-5-5": (4.00, 20.00),
+          "claude-haiku-5-5": (0.10, 0.50)}
 
 
 def fetch(url: str, dest: Path, sha256: str | None) -> bytes:
