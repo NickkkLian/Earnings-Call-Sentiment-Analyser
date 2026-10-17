@@ -391,3 +391,7 @@ table.data th.num button{justify-content:flex-end;width:100%}
 .provenance{margin:0 0 var(--space-4);font-size:var(--text-xs);line-height:var(--leading-relaxed);color:var(--text-2);max-width:none}
 .provenance a{color:inherit}
 .company-note{flex-basis:100%;margin:var(--space-2) 0 0;padding:var(--space-2) var(--space-3);border-left:3px solid var(--warning);background:var(--warning-tint);color:var(--text);font-size:var(--text-xs);line-height:var(--leading-relaxed)}
+.analysis{margin-bottom:var(--space-4)}
+.analysis h2{margin:var(--space-2) 0;font-size:clamp(1.2rem,2.5vw,1.65rem);line-height:1.3}
+.analysis p{margin-top:var(--space-2)}
+.analysis-result{font:var(--weight-semibold) var(--text-lg)/1.5 var(--font-mono);font-variant-numeric:tabular-nums}

@@ -43,3 +43,4 @@ jobs:
         with:
           node-version: '22'
       - run: node docs/check-web.mjs
+      - run: node --test docs/analysis.test.cjs

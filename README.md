@@ -1,8 +1,12 @@
 # CallDelta
 
-![CallDelta](.github/header.png)
-
 **Call tone vs. analyst pushback — not a trading signal.**
+
+**No reliable evidence that analyst pushback explains the post-call move after EPS.** Across the twelve scored calls, gap versus held-out EPS residual has **r = 0.03, approximate 95% interval −0.56 to +0.59**. Leave-one-out prediction RMSE: **EPS + gap 11.59 pp; EPS only 10.77 pp; training mean 8.75 pp** (lower is better). Removing one call and refitting gives r from **−0.10 to +0.31**. Reproduce these figures offline: `node docs/report-analysis.cjs`.
+
+The interval is a Fisher approximation assuming independent calls. Repeated companies and shared training folds break that assumption; its coverage is not calibrated. This is an exploratory check on three companies, not a chronological backtest or a finding.
+
+![CallDelta](.github/header.png)
 
 An earnings call has two halves: what management chose to say, and what analysts made them answer. CallDelta scores each half separately with a fixed extraction schema, tracks the *gap* between them across quarters, and sets that gap next to the price move after the call.
 
@@ -10,15 +14,15 @@ An earnings call has two halves: what management chose to say, and what analysts
 
 **What it is not.** Not a trading signal and not a finding. Twelve calls cannot show whether tone predicts returns. Three limits show up in the real run, and the page states each one where it applies:
 
-- **The "residual return" is not a return.** It subtracts 1.5 × the EPS surprise, a hand-picked constant. On 12 of the 12 calls that term is larger than the return after the sector move, so the residual mostly restates the EPS surprise with its sign flipped; three of them are −125%, −323% and +114%, which no return can be. The arithmetic is right and the page re-derives it; the constant is the weak part (see [Honest caveats](#honest-caveats)).
+- **The residual is a model leftover, not an earned return.** The analysis page replaces the historical hand-picked 1.5 × EPS control with an intercept and EPS coefficient fitted on all the other calls. It re-derives every displayed residual and keeps warnings when the EPS control dominates or a residual passes ±100%. The historical pipeline output remains intact as input; its residual column is superseded in the analysis view. See [Honest caveats](#honest-caveats).
 - **No topic was matched across the two halves.** Topics are matched by name, and on the latest call of each of the three companies none matched (18 of 18 topics belong to one half), so the topic-level gap has nothing to show on this data.
 - **One run of one model**, not checked against human labels.
 
 [![Check](https://img.shields.io/github/actions/workflow/status/NickkkLian/Earnings-Call-Sentiment-Analyser/check.yml?branch=main&label=check&style=flat-square&labelColor=2f5859)](https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser/actions/workflows/check.yml)
 
-![CallDelta dashboard on Meta's Q2 2026 call (real data): management tone +0.55, analyst tone +0.45, gap +0.10, with the page's own warning about the residual](docs/screenshot-dashboard.png)
+![CallDelta dashboard: pooled verdict and fitted EPS residual analysis on the twelve real calls](docs/screenshot-dashboard.png)
 
-The screenshot is the Meta tab ([open it](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/#META)). The page opens on Microsoft, whose latest call scored the same tone for both halves (gap 0.00).
+The page opens on Microsoft, whose latest call scored the same tone for both halves (gap 0.00). The pooled verdict covers all companies and remains first on every tab.
 
 ## Try it
 
@@ -26,11 +30,13 @@ The screenshot is the Meta tab ([open it](https://nickkklian.github.io/Earnings-
 git clone https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser && cd Earnings-Call-Sentiment-Analyser
 python3 -m http.server --directory docs 8000     # then open http://localhost:8000 (no install, no key)
 node docs/check-web.mjs                          # the page's own checks; prints how many calls carry the residual warning
+node --test docs/analysis.test.cjs                # fitted control, holdout, uncertainty and failure cases
+node docs/report-analysis.cjs                     # reproduce the first-screen figures offline
 ```
 
 **In the browser** — open the [dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/) (static, no server) or serve `docs/` from a clone as above. It opens on the twelve real calls above, with a link to each call's transcript page; **Load JSON** (or drag a file onto the page) replaces them with your own pipeline output, validated for shape first; **Sample JSON** (under the schema in the Methodology section) downloads a **synthetic** example file (fictional companies, invented numbers) so you can see the schema.
 
-**What the real data contains.** Scores for the prepared remarks and for the analyst Q&A, topics, EPS surprise and the 5-day returns (EPS estimates and prices from Yahoo Finance via yfinance). Quotes come only from the prepared remarks of each company's latest call: at most 25 words each, checked word for word against the transcript, a passage with an elision or a mid-sentence fragment dropped. Analyst questions are scored but never quoted, and no analyst is named. Two companies carry a caveat on the page, taken from what they said on the calls: Alphabet's EPS in Q3 2025, Q1 2026 and Q2 2026 includes unrealized gains on equity securities, and Meta's includes a one-time tax charge (Q3 2025) and a tax benefit (Q1 2026). In those quarters the EPS-surprise control swamps the residual, so those residuals are not meaningful; the page also marks every call (all twelve in this run) where that control is larger than the return after the sector move.
+**What the real data contains.** Scores for the prepared remarks and for the analyst Q&A, topics, EPS surprise and the 5-day returns (EPS estimates and prices from Yahoo Finance via yfinance). Quotes come only from the prepared remarks of each company's latest call: at most 25 words each, checked word for word against the transcript, a passage with an elision or a mid-sentence fragment dropped. Analyst questions are scored but never quoted, and no analyst is named. Two companies carry a caveat on the page, taken from what they said on the calls: Alphabet's EPS in Q3 2025, Q1 2026 and Q2 2026 includes unrealized gains on equity securities, and Meta's includes a one-time tax charge (Q3 2025) and a tax benefit (Q1 2026). Fitting the coefficient does not repair those EPS inputs. The page marks control dominance using the fitted coefficients.
 
 **Re-run it** — `data/ir-calls.json` lists each call's transcript URL and the SHA-256 of the file that was scored (Word files are read with the standard library, PDFs with `pdfminer.six`, MIT-licensed):
 
@@ -59,7 +65,7 @@ Replace the fictional tickers with real ones FMP has transcripts for (most US-li
 1. **Section-level decomposition.** Prepared remarks and Q&A are scored separately. The gap between them — how rosy management sounds vs. how sceptical analysts are — is the headline signal.
 2. **Topic-level sentiment.** Each call is broken into 4–6 themes with separate management and Q&A tone per topic; a wide gap on a topic both halves discussed shows where analysts are pushing back. Q&A-only topics (analysts raised something management did not) are surfaced on purpose. Topics are matched across the halves by name only: on the real run none matched, so every topic on the page belongs to one half, and each percentage is a share of that half, not of the whole call.
 3. **Tagged passages.** The model extracts and tags notable quotes — *confident, hedging, evasion, admission, contradiction* — not just scores.
-4. **Residual return as the target.** Sentiment is set against the 5-day return net of the sector ETF move and net of γ × the EPS surprise, not against the raw return. γ = 1.5 is a placeholder that was never fitted, and on the real run it dominates the result (see the caveats).
+4. **Out-of-sample EPS control.** `docs/analysis.js` pools the calls and fits OLS: sector-adjusted move = α + γ × EPS surprise. For each displayed residual it excludes that call, fits α and γ on the rest, then subtracts the held-out prediction. The fitted γ ranges from 0.0048 to 0.1030 across these folds; no 1.5 constant enters the new analysis. Gap is management minus Q&A tone. The separate holdout comparison predicts the sector-adjusted move using EPS + gap, EPS only, or the training mean; each model excludes the held-out call. The delete-one sensitivity check removes a call and repeats the entire fitting process. Missing sector data or a singular EPS fit withholds the verdict and explicitly labels the file's original residuals. Singular EPS + gap fits withhold that baseline comparison. The same analysis runs on loaded JSON files.
 5. **Multi-quarter trajectory.** Single-call sentiment is noise; the *change* in tone across quarters is where any signal would live.
 
 ## How it fits together
@@ -74,7 +80,7 @@ flowchart LR
   D --> G["signals.csv"]
   F --> G
   G --> H["export_dashboard.py → JSON"]
-  H --> I["docs/ dashboard<br/>static, Load JSON"]
+  H --> I["docs/analysis.js<br/>pooled leave-one-out EPS fit → verdict → static dashboard"]
   J["tests/ · src/eval.py · docs/check-web.mjs"] -. verify .-> B
   J -. verify .-> F
   J -. verify .-> H
@@ -97,11 +103,14 @@ python -m pytest -q
 python -m src.eval
 python -m src.eval --break
 node docs/check-web.mjs
+node --test docs/analysis.test.cjs
+node docs/report-analysis.cjs
 ```
 
 - `tests/` covers the transcript splitter (every operator phrasing the regex claims to recognise, the no-marker case, first match wins, an opening announcement of a later Q&A is not the hand-off), the quote filter for published data (prepared remarks only, 25 words, word for word, no elisions), the residual-return arithmetic and trading-day windows on a fixed synthetic series, and the dashboard export (topic merging across sections, Q&A-only topics, NaN rows dropped rather than zeroed). No network access.
 - `src/eval.py` scores the extraction step on `eval/passages.json`: 30 synthetic passages (six per tag) and 10 synthetic guidance snippets. It runs through the project's own analyzer — same prompt, same schema — and records the model name and date in `eval/llm-cache.json`. The cache now holds the 2026-09-25 run with `claude-sonnet-5`, the default at the time (the default is now `claude-sonnet-5-5`, not yet scored on this set): **30/30 passages and 10/10 guidance snippets** (six right out of six for each of confident, hedging, evasion, admission and contradiction). The earlier 2026-09-22 run with `claude-haiku-4-5-20251001` had the same score; its cache is in the git history. Without the cache it reports **NOT RUN** (exit code 2) rather than a made-up number. `--break` is the negative control: a cached tag outside the schema must be refused. This is a small evaluation set, not a formal evaluation pipeline — and `eval/llm-cache.json` is the whole of what that run left behind: it records the model name and date, nothing here shows a request went over the network, and a hand-written cache would be indistinguishable from it.
 - `docs/check-web.mjs` asserts the dashboard loads no external scripts, that the demo and the real data pass the loader's own validation, that every real transcript source is the company's own investor-relations site and every real quote is at most 25 words, that the page opens on the real data, that mutated files are rejected with specific messages, and that the correlation helper is right.
+- `docs/analysis.test.cjs` checks fitted coefficients against exact synthetic arithmetic, exclusion of the held-out outcome, prediction baselines, interval endpoints, full refits for delete-one sensitivity, missing/degenerate inputs and the impossible-residual warning. The historical Python pipeline and scored files are unchanged; analysis consumes their raw EPS, sector returns and tone fields.
 
 CI runs all of the above on every push (Python 3.10 and 3.13; the eval score only once the cache exists).
 
@@ -158,7 +167,8 @@ Transcripts and LLM responses are cached under `./cache/`. The LLM cache key is 
 
 - **Sample size.** The real run is twelve calls, four per company. That shows the method runs end to end; it cannot show a relationship. Every correlation on the page is an illustration of the method.
 - **Lookahead bias.** The pipeline anchors all returns to the actual call date. Don't be cute with intraday data.
-- **The EPS-surprise control is a placeholder, and it dominates.** `γ = 1.5` was picked by hand and never fitted. On the real run γ × surprise is larger than the sector-adjusted return on 12 of 12 calls, so the residual is mostly −1.5 × the EPS surprise. Where reported EPS carries one-off items (Alphabet's unrealized gains, Meta's tax items) the surprise is 57% to 214% in size and the residual comes out at −125%, −323%, +114% and −95%. This is not an arithmetic or units error (every value is a fraction, and the page re-derives each residual from its parts); the constant is wrong for this use. Fitting γ, or measuring the surprise on adjusted EPS, needs many more calls than this run has, so it is stated here and on the page instead of patched.
+- **A fitted coefficient does not fix the sample or the EPS measure.** The page replaces the historical `γ = 1.5` placeholder with leave-one-out fits, including an intercept. The original source files and Python pipeline still retain the historical formula for reproducibility; their `residual_5d` is not the fitted analysis. Reported EPS still includes one-off equity gains and tax items. A coefficient fitted on the other calls can be unstable, and folds contain future calls: this is out-of-sample by call, not a historical trading simulation. Residuals remain model leftovers and must never be read as earned returns. The page retains both the control-dominance warning and a separate warning for residuals beyond ±100%.
+- **Uncertainty is approximate.** The first-screen Fisher interval assumes independent observations. Calls repeat three companies and leave-one-out residuals share training data, so the interval is descriptive rather than calibrated inference. The delete-one range measures single-call sensitivity, not a confidence interval. A larger, company-diverse sample and time-based holdouts are needed before a predictive claim.
 - **Sector proxy is crude.** One sector ETF per ticker (IGV, XLC, SOXX, …) with β fixed at 1; a factor model would be the proper control.
 - **Topics are matched by name.** A topic counts as discussed in both halves only when one name contains the other. The model names topics freely, so on the real run nothing matched. Matching by meaning is not built.
 
@@ -183,6 +193,9 @@ tests/                 splitter · residuals · export
 eval/passages.json     30 tagged passages + 10 guidance snippets (synthetic)
 data/ir-calls.json     the calls in the real run: company transcript URLs and SHA-256
 docs/                  the dashboard (GitHub Pages root) · real-data.js · demo-data.js (Sample JSON) · check-web.mjs
+  analysis.js          shared pure analysis: fitted EPS control, holdout comparison, interval, sensitivity
+  report-analysis.cjs  offline reproduction of verdict figures and historical token-cost projection
+  analysis.test.cjs    exact fixtures, exclusion checks, degeneracy and warning checks
 DOCS.md                design notes and module-by-module developer guide
 ```
 

@@ -59,10 +59,16 @@ const oneSided = Object.values(real).filter(c => c.topics.every(t => t.mgmt_miss
 check('where no topic was named in both halves the page says there is no topic-level gap, and where one was it counts them', oneSided.every(c => /^No topic was named in both halves/.test(ctx.__tn(c.topics))) && /^1 of 2 topics was named in both halves/.test(ctx.__tn([{ weight: 0.5, mgmt: 0.1, qa: 0.2 }, { weight: 0.5, mgmt: 0.1, qa: 0, qa_missing: true }])) && !/'Wide gaps show where analysts push back/.test(app), `${oneSided.length}/${Object.keys(real).length} real companies have no topic in both halves`);
 // the residual is flagged wherever the EPS-surprise control (γ × surprise) is larger than the return after the sector move
 const co = { beta: 1, gamma: 1.5 }, big = { ret_5d: 0.05, sector_5d: 0.01, eps_surprise: 0.5, residual_5d: 0.05 - 0.01 - 0.75 }, small = { ret_5d: 0.05, sector_5d: 0.01, eps_surprise: 0.01, residual_5d: 0.05 - 0.01 - 0.015 };
+const fitted = { ...big, alpha: 0.02, gamma: 0.1, residual_5d: -0.03 };
+check('per-call fitted gamma and intercept override the historical company gamma and reconcile', ctx.__r(co, fitted).ok && ctx.__r(co, fitted).gamma === 0.1 && ctx.__r(co, fitted).alpha === 0.02);
+const badFit = JSON.parse(JSON.stringify(demo)); badFit.NWSC.quarters[0].gamma = 'bad';
+check('non-numeric per-call fit parameters are rejected', /gamma.*finite number/.test(String(ctx.__v(badFit))));
+check('impossible residuals retain a separate visible warning even when the EPS control does not dominate', /A.impossible\(cur\) \? h\('p'/.test(app) && /Residual beyond ±100%/.test(app));
 const swampedReal = Object.values(real).flatMap(c => c.quarters.map(q => ctx.__cd(c, q))).filter(Boolean).length;
 check('the residual warning fires when the EPS-surprise control outweighs the sector-adjusted return, not otherwise, and never without γ', ctx.__cd(co, big) === true && ctx.__cd(co, small) === false && ctx.__cd({ beta: 1 }, big) === false && /controlDominates\(c, cur\) \? h\('p', \{ class: 'company-note'/.test(app) && /swamped \? `In \$\{swamped\} of \$\{qs\.length\}/.test(app), `${swampedReal}/${meta.calls.length} real calls carry the warning`);
 check('pearson([1,2,3],[2,4,6]) = 1 and < 3 points → null', Math.abs(ctx.__p([1, 2, 3], [2, 4, 6]) - 1) < 1e-12 && ctx.__p([1, 2], [1, 2]) === null);
 console.log(`check-web · ${new Date().toISOString()} · node ${process.version}`);
 for (const [st, name, d] of results) console.log(`${st}  ${name}${d ? '  · ' + d : ''}`);
+console.log(`CHECKS: ${results.length - failed} passed, ${failed} failed`);
 console.log(failed ? `RESULT: ${failed} FAILED` : 'RESULT: ALL PASS');
 process.exit(failed ? 1 : 0);

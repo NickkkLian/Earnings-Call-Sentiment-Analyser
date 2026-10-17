@@ -248,7 +248,7 @@ The interesting line:
 residual = ret_5d − β·sector_5d − γ·eps_surprise
 ```
 
-with `β=1.0`, `γ=1.5` as placeholders. Tuning these is a natural extension.
+with `β=1.0`, `γ=1.5` in the historical pipeline output, retained for reproducibility. The dashboard's analysis layer (`docs/analysis.js`) supersedes that residual: pooled OLS with an intercept, fitted separately for each held-out call, computes `ret_5d − β·sector_5d − α − γ·eps_surprise`. It also reports pooled gap correlation, an explicitly approximate Fisher interval, leave-one-out prediction errors versus EPS-only and mean baselines, and delete-one sensitivity with complete refits. `node docs/report-analysis.cjs` reproduces the figures offline; `node --test docs/analysis.test.cjs` checks the arithmetic and failure cases. The scored source files and extraction pipeline are unchanged.
 
 `SECTOR_PROXY` maps tickers to sector ETFs. Falls back to SPY for unknown
 tickers. This is a crude control; a fitted multi-factor model would be the
@@ -456,9 +456,7 @@ return a `Transcript` dataclass; everything else stays put.
 
 ### Tune the residual return formula
 
-In `src/prices.py`, `compute_reaction` takes `beta` and `gamma` parameters.
-Once you have ~30 calls per ticker, you can fit these per-ticker via OLS
-on (ret, sector_ret, surprise) and replace the constants.
+The page now fits the EPS coefficient out of sample using pooled calls (see above). `src/prices.py` still produces the historical placeholder column, which the analysis view replaces in memory. A larger sample with adjusted EPS, company-diverse evaluation and time-based holdouts is needed before making predictive claims; the current folds may include later calls.
 
 ### Run more quarters efficiently
 
@@ -501,8 +499,7 @@ upfront about:
 - **Lookahead-bias risk.** All returns are anchored to the actual call date.
   But: pre-market vs post-market reporting matters, and we treat them
   identically. For banks (often pre-market) this is a real distortion.
-- **EPS-surprise control is rough.** A constant `gamma=1.5` is a rule of
-  thumb. The real coefficient varies by ticker, sector, and regime.
+- **EPS-surprise control is rough.** The analysis replaces historical `gamma=1.5` with held-out fits, but a small pooled sample and one-off EPS items still limit it. Repeated companies and shared training folds violate the independence assumption behind the descriptive Fisher interval; coverage is not calibrated.
 - **Sector proxy is crude.** SOXX/XLC/XLY/etc. are loose. A proper Fama-French
   or Barra factor model would be better for serious work.
 - **LLM extraction is not infallible.** Tone scores from an LLM are

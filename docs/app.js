@@ -4,6 +4,7 @@
 (() => {
 'use strict';
 const DEMO = window.CALLDELTA_DEMO, REAL = window.CALLDELTA_REAL, META = window.CALLDELTA_REAL_META;
+const A = window.CALLDELTA_ANALYSIS;
 const SVG_TAGS = new Set(['svg', 'rect', 'line', 'text', 'defs', 'pattern', 'path', 'g', 'title', 'circle', 'polyline', 'polygon']);
 const $ = (s, r = document) => r.querySelector(s);
 const h = (tag, attrs = {}, ...kids) => { const el = SVG_TAGS.has(tag) ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (v === null || v === undefined || v === false) continue; if (k === 'class') el.setAttribute('class', v); else if (k === 'html') el.innerHTML = v; else if (k.startsWith('on')) el.addEventListener(k.slice(2), v); else el.setAttribute(k, v === true ? '' : v); } for (const kid of kids.flat(Infinity)) { if (kid === null || kid === undefined || kid === false) continue; el.append(kid.nodeType ? kid : document.createTextNode(String(kid))); } return el; };
@@ -18,7 +19,7 @@ function validate(obj) { // same rules the old React dashboard applied, plus num
     for (const f of REQ_T) if (!(f in c)) return `${t}: missing field "${f}"`;
     if (!Array.isArray(c.quarters) || !c.quarters.length) return `${t}: "quarters" must be a non-empty array`;
     for (const [i, q] of c.quarters.entries()) { for (const f of REQ_Q) if (!(f in q)) return `${t} quarter ${i}: missing "${f}"`; for (const f of REQ_Q.slice(1)) if (typeof q[f] !== 'number' || !Number.isFinite(q[f])) return `${t} quarter ${i}: "${f}" must be a finite number`; if (q.mgmt < -1 || q.mgmt > 1 || q.qa < -1 || q.qa > 1) return `${t} quarter ${i}: tone must be within -1..1`;
-      if ('sector_5d' in q && (typeof q.sector_5d !== 'number' || !Number.isFinite(q.sector_5d))) return `${t} quarter ${i}: "sector_5d" must be a finite number when present`; }
+      for (const f of ['sector_5d', 'alpha', 'gamma']) if (f in q && (typeof q[f] !== 'number' || !Number.isFinite(q[f]))) return `${t} quarter ${i}: "${f}" must be a finite number when present`; }
     for (const f of ['beta', 'gamma']) if (f in c && (typeof c[f] !== 'number' || !Number.isFinite(c[f]))) return `${t}: "${f}" must be a finite number when present`;
     if (!Array.isArray(c.topics)) return `${t}: "topics" must be an array`; if (!Array.isArray(c.extracts)) return `${t}: "extracts" must be an array`;
     // every topic and extract is checked too: a topic with only a name used to pass and then broke the page while drawing
@@ -76,8 +77,8 @@ function provenance() {
 function pearson(xs, ys) { const n = xs.length; if (n < 3) return null; const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null; }
 
 // The residual is the file's number; the page re-derives it from the file's own parts so a reader can check it:
-// residual = 5-day return − β × sector 5-day return − γ × EPS surprise (src/prices.py residual_return). Values are fractions;
-// a difference within 0.05 percentage points counts as reconciled. Without sector_5d, β and γ the residual is not checkable.
+// Fitted residual = 5-day return − β × sector return − α − γ × EPS surprise; old files omit α.
+// A difference within 0.05 percentage points counts as reconciled. Missing components never count as a pass.
 function recSummary(data, tickers, calls) {
   const recs = tickers.flatMap(t => data[t].quarters.map(q => reconcile(data[t], q))), checkable = recs.filter(r => r.checkable), passing = checkable.filter(r => r.ok).length;
   const text = checkable.length === 0 ? `0/${calls} checkable` : checkable.length === calls ? `${passing}/${calls} reconcile` : `${passing}/${checkable.length} reconcile · ${calls - checkable.length} not checkable`;
@@ -85,15 +86,25 @@ function recSummary(data, tickers, calls) {
 }
 function reconcile(c, q) {
   const num = v => typeof v === 'number' && Number.isFinite(v);
-  const missing = [!num(q.sector_5d) && 'sector return', !num(c.beta) && 'β', !num(c.gamma) && 'γ'].filter(Boolean);
+  const gamma = q.gamma ?? c.gamma, alpha = q.alpha ?? 0;
+  const missing = [!num(q.sector_5d) && 'sector return', !num(c.beta) && 'β', !num(gamma) && 'γ'].filter(Boolean);
   if (missing.length) return { checkable: false, missing };
-  const sectorPart = c.beta * q.sector_5d, surprisePart = c.gamma * q.eps_surprise, off = (q.ret_5d - sectorPart - surprisePart) - q.residual_5d;
-  return { checkable: true, ok: Math.abs(off) <= 0.0005, off, sectorPart, surprisePart, beta: c.beta, gamma: c.gamma };
+  const sectorPart = c.beta * q.sector_5d, surprisePart = gamma * q.eps_surprise, off = (q.ret_5d - sectorPart - alpha - surprisePart) - q.residual_5d;
+  return { checkable: true, ok: Math.abs(off) <= 0.0005, off, sectorPart, surprisePart, beta: c.beta, gamma, alpha };
 }
-// The EPS-surprise control (γ × surprise) against what it is taken from: the 5-day return after the sector move. γ is a
-// hand-picked constant, so when the control is the larger of the two the residual mostly restates the EPS surprise with
-// its sign flipped (and can pass ±100%, which no return can). The page says so wherever that is the case.
+// A fitted control can still dominate the sector-adjusted move. Warn separately for values beyond ±100%.
 function controlDominates(c, q) { const r = reconcile(c, q); return r.checkable && Math.abs(r.surprisePart) > Math.abs(q.ret_5d - r.sectorPart); }
+function analysisCard(result) {
+  const s = result.summary, f = x => x === null ? 'n/a' : x.toFixed(2), range = xs => xs ? xs.map(f).join(' to ') : 'n/a', error = x => `${(x * 100).toFixed(2)} pp`;
+  if (!s) return h('section', { class: 'card analysis', 'aria-label': 'Pooled verdict' }, h('h2', {}, 'Fitted analysis unavailable'), h('p', {}, result.reason), h('p', { class: 'hint' }, 'The panels below show the file’s original residuals, not fitted results. No verdict is inferred from them.'));
+  return h('section', { class: 'card analysis', 'aria-label': 'Pooled verdict' },
+    h('div', { class: 'lbl' }, `Does analyst pushback explain the move after EPS? · ${s.n} calls · ${s.companies} companies`),
+    h('h2', {}, A.verdict(s)),
+    h('p', { class: 'analysis-result' }, `Pooled r = ${f(s.r)} · approximate Fisher 95% interval ${range(s.ci)}`),
+    h('p', {}, `Leave-one-out holdout RMSE: EPS + gap ${s.rmse_gap === null ? 'unavailable (singular fit)' : error(s.rmse_gap)}; EPS only ${error(s.rmse_eps)}; training mean ${error(s.rmse_mean)}. Lower is better; errors are percentage points of the sector-adjusted move.`),
+    h('p', { class: 'hint' }, `Each residual uses an intercept and EPS coefficient fitted on all other calls (γ ${s.gamma_range.map(x => x.toFixed(4)).join(' to ')}). Delete-one-call r range, refitting each time: ${range(s.loo_range)}. Folds can include later calls; this is not a chronological backtest.`),
+    h('p', { class: 'hint' }, 'Exploratory only. The interval assumes independent calls; repeated companies and shared training folds break that assumption, so its coverage is not calibrated. One model run, unadjusted EPS and few companies cannot establish a trading signal.'));
+}
 // A topic's weight is its share of the half of the call it was named in: the model gives shares that add up to 1 within
 // the prepared remarks and, separately, within the Q&A (src/schema.py Topic.weight). The export lists the six largest
 // from both halves together, so the percentages on the page are not shares of the whole call and do not add up to 100%.
@@ -157,7 +168,7 @@ function roving(e) {
 }
 function renderPage() {
   const main = $('#main'); main.innerHTML = '';
-  const data = S.data, tickers = Object.keys(data); if (!data[S.ticker]) S.ticker = tickers[0];
+  const result = A.analyze(S.data), data = result.data, tickers = Object.keys(data); if (!data[S.ticker]) S.ticker = tickers[0];
   const c = data[S.ticker], qs = c.quarters, cur = qs[qs.length - 1], prev = qs[qs.length - 2] || cur;
   const calls = tickers.reduce((a, t) => a + data[t].quarters.length, 0);
   $('#pill-short').textContent = S.custom ? 'Your file' : 'Real calls';
@@ -165,17 +176,19 @@ function renderPage() {
   $('#reset').hidden = !S.custom;
   // the address always names the company on screen, so a reload or a shared link opens the same one
   if (fromHash() !== S.ticker) history.replaceState(null, '', '#' + encodeURIComponent(S.ticker));
+  main.append(analysisCard(result));
   main.append(h('div', { class: 'ticker-tabs', role: 'tablist', 'aria-label': 'Companies' }, tickers.map(t => h('button', { role: 'tab', id: 'tab-' + t, 'aria-controls': 'ticker-panel', 'aria-selected': t === S.ticker ? 'true' : 'false', onclick: () => { if (t === S.ticker) return; S.ticker = t; history.pushState(null, '', '#' + encodeURIComponent(t)); render(); } }, t)), h('span', { class: 'meta' }, `${qs.length} ${qs.length === 1 ? 'quarter' : 'quarters'} · ${tickers.length} tickers · ${calls} calls · `, recSummary(data, tickers, calls))));
   if (!S.custom) main.append(provenance());
   const panel = h('div', { id: 'ticker-panel', role: 'tabpanel', 'aria-labelledby': 'tab-' + S.ticker }); main.append(panel);
   const gap = cur.mgmt - cur.qa, gapPrev = prev.mgmt - prev.qa, rec = reconcile(c, cur);
   panel.append(h('div', { class: 'company' }, h('div', {}, h('h1', {}, c.company), h('div', { class: 'sub' }, `${S.ticker} · ${c.sector} · latest call ${cur.date || cur.label}`)),
-    h('div', { class: 'kpis' }, [['EPS surprise', cur.eps_surprise], ['5-day return', cur.ret_5d], ['5-day residual *', cur.residual_5d]].map(([l, v]) => h('div', { class: 'kpi' }, h('div', { class: 'lbl' }, l), h('div', { class: 'val ' + cls(v * 10) }, pct(v))))),
+    h('div', { class: 'kpis' }, [['EPS surprise', cur.eps_surprise], ['5-day return', cur.ret_5d], [result.summary ? '5-day fitted residual *' : 'File residual *', cur.residual_5d]].map(([l, v]) => h('div', { class: 'kpi' }, h('div', { class: 'lbl' }, l), h('div', { class: 'val ' + cls(v * 10) }, pct(v))))),
     rec.checkable
-      ? h('div', { class: 'recon', role: 'note' }, `5-day return ${pct(cur.ret_5d)} = sector ${pct(rec.sectorPart)} (β ${rec.beta.toFixed(1)}) + surprise ${pct(rec.surprisePart)} (γ ${rec.gamma.toFixed(1)} × ${pct(cur.eps_surprise)}) + residual ${pct(cur.residual_5d)} `,
+      ? h('div', { class: 'recon', role: 'note' }, `5-day return ${pct(cur.ret_5d)} = sector ${pct(rec.sectorPart)} (β ${rec.beta.toFixed(1)}) + intercept ${pct(rec.alpha)} + surprise ${pct(rec.surprisePart)} (γ ${rec.gamma.toFixed(4)} × ${pct(cur.eps_surprise)}) + residual ${pct(cur.residual_5d)} `,
           rec.ok ? h('span', { class: 'ok' }, '✓ reconciles') : h('span', { class: 'bad' }, `✗ off by ${(Math.abs(rec.off) * 100).toFixed(2)} pp`))
       : h('div', { class: 'recon unknown', role: 'note' }, `${rec.missing.join(' and ')} not in this file — residual not checkable`),
-    controlDominates(c, cur) ? h('p', { class: 'company-note', role: 'note' }, `Read this residual with care. The EPS-surprise control (γ × surprise = ${pct(rec.surprisePart)}) is larger than the return after the sector move (${pct(cur.ret_5d - rec.sectorPart)}), so the residual mostly restates the EPS surprise with its sign flipped. γ = ${rec.gamma.toFixed(1)} is an assumption, not a fitted number, and the residual is not a return anyone earned.`) : null,
+    controlDominates(c, cur) ? h('p', { class: 'company-note', role: 'note' }, `Read this residual with care. The EPS-surprise control (γ × surprise = ${pct(rec.surprisePart)}) is larger than the return after the sector move (${pct(cur.ret_5d - rec.sectorPart)}). Even a fitted control can dominate; the residual is a model leftover, not a return anyone earned.`) : null,
+    A.impossible(cur) ? h('p', { class: 'company-note', role: 'note' }, 'Residual beyond ±100%: this model leftover must not be read as an investable return. Check EPS one-offs, the fitted control and source data.') : null,
     typeof c.note === 'string' && c.note ? h('p', { class: 'company-note', role: 'note' }, c.note) : null));
   // colour may repeat what a sign already says, never stand alone for good or bad: the strip's
   // unsigned figures and these deltas carry no colour classes
@@ -194,7 +207,7 @@ function renderPage() {
   panel.append(h('div', { class: 'panels-2' },
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Sentiment gap vs residual return'), h('p', {}, `5-day post-call return after controlling for sector and EPS surprise · one point per call · Pearson r = ${r === null ? 'n/a' : r.toFixed(2)} over n = ${qs.length} calls${qs.length < 30 ? ` — far too few points for r to show a relationship; it is here to show the method, not a finding` : ' (not a trading signal)'}`)), scatter(qs), h('p', { class: 'hint', style: 'margin-top:8px' }, swamped ? `In ${swamped} of ${qs.length} ${qs.length === 1 ? 'call' : 'calls'} here the EPS-surprise control is larger than the return after the sector move, so the vertical axis mostly restates the EPS surprise with its sign flipped; a residual beyond ±100% is not a return.` : 'Quadrant of interest: wide gap and negative residual — management rosy, market unconvinced.')),
     h('div', { class: 'card' }, h('h2', {}, 'Notable extracts'), h('p', { class: 'hint', style: 'margin-bottom:12px' }, S.custom ? `${cur.label} · passages the model tagged` : `${cur.label} · passages the model tagged in the prepared remarks, word for word, 25 words at most`), c.extracts.length ? c.extracts.map(e => h('div', { class: 'extract' }, h('div', {}, h('span', { class: 'cat' }, e.tag)), h('div', {}, h('q', {}, esc(e.text)), h('div', { class: 'who' }, '— ' + esc(e.speaker))))) : h('p', { class: 'muted' }, 'No extracts in this file.'))));
-  main.append(h('div', { class: 'card' }, h('h2', {}, 'Methodology'), h('div', { class: 'method' }, h('div', {}, h('p', {}, 'Each transcript is split into prepared remarks and analyst Q&A and scored separately by the model against a fixed JSON schema, written into the prompt and validated, with one repair round (Anthropic, OpenAI, Gemini or an OpenAI-compatible server; native structured output is an option for Anthropic and OpenAI). Tone, hedging density, guidance confidence, topics and tagged passages come back as structured fields, so quarters are comparable.'), h('p', {}, '* Residual = 5-day return − β·sector-ETF return − γ·EPS surprise (β = 1, γ = 1.5 in the pipeline). Both are hand-picked constants, not fitted. The residual is a model leftover, not a return anyone earned: when the EPS surprise is large it is mostly −γ × surprise and can pass ±100%. The page marks every call where that control outweighs the return after the sector move.'), h('p', {}, 'Tags: tone is scored from −1 to +1. The headline sentiment gap (management tone − analyst Q&A tone) is tagged wide above 0.2 and normal otherwise. A topic is tagged gap when its management and Q&A tones differ by more than 0.25 either way; a topic found in only one section gets no gap tag. These cut-offs only choose the tags; no score or chart uses them.'), h('p', {}, 'The data on this page is one run of this pipeline on twelve real calls, the four most recent of each company, scored from the transcripts the companies publish themselves (', h('code', {}, 'python -m src.ir_run'), '). Analyst questions are scored as part of the Q&A section but never quoted, and no analyst is named. Load a JSON file produced by ', h('code', {}, 'python -m src.export_dashboard signals.csv'), ' to see your own run; the loader validates the shape and rejects malformed files with a specific message.')),
+  main.append(h('div', { class: 'card' }, h('h2', {}, 'Methodology'), h('div', { class: 'method' }, h('div', {}, h('p', {}, 'Each transcript is split into prepared remarks and analyst Q&A and scored separately by the model against a fixed JSON schema, written into the prompt and validated, with one repair round (Anthropic, OpenAI, Gemini or an OpenAI-compatible server; native structured output is an option for Anthropic and OpenAI). Tone, hedging density, guidance confidence, topics and tagged passages come back as structured fields, so quarters are comparable.'), h('p', {}, '* Fitted residual = 5-day return − β·sector-ETF return − α − γ·EPS surprise. The page fits pooled OLS with an intercept on the other calls, leaving the displayed call out; β stays at the file’s sector-proxy value (1 on real data). It replaces the historical pipeline’s hand-picked γ residual in memory, without changing the scored source file. The target is gap (management − analyst tone) versus this held-out residual. The holdout prediction comparison instead predicts the sector-adjusted move using EPS + gap, EPS only, or the training mean, all trained without the held-out call. No chronological prediction or causation is claimed. If inputs or EPS variation are insufficient, the page labels the original file residuals and withholds the verdict. The residual is a model leftover, not a return anyone earned; the page warns when the EPS control dominates and whenever a residual passes ±100%.'), h('p', {}, 'Tags: tone is scored from −1 to +1. The headline sentiment gap (management tone − analyst Q&A tone) is tagged wide above 0.2 and normal otherwise. A topic is tagged gap when its management and Q&A tones differ by more than 0.25 either way; a topic found in only one section gets no gap tag. These cut-offs only choose the tags; no score or chart uses them.'), h('p', {}, 'The data on this page is one run of this pipeline on twelve real calls, the four most recent of each company, scored from the transcripts the companies publish themselves (', h('code', {}, 'python -m src.ir_run'), '). Analyst questions are scored as part of the Q&A section but never quoted, and no analyst is named. Load a JSON file produced by ', h('code', {}, 'python -m src.export_dashboard signals.csv'), ' to see your own run; the loader validates the shape and rejects malformed files with a specific message.')),
     h('div', {}, h('pre', { tabindex: '0', role: 'region', 'aria-label': 'Model output schema' }, `{
   "section": "prepared" | "qa",
   "tone": -1.0..1.0,
