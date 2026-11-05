@@ -60,7 +60,19 @@ test('pooled verdict precedes tabs and states uncertainty limitations', () => {
   const app = fs.readFileSync(__dirname + '/app.js', 'utf8');
   assert.ok(app.includes('main.append(analysisCard('));
   assert.ok(app.indexOf('main.append(analysisCard(') < app.indexOf("main.append(h('div', { class: 'ticker-tabs'"));
-  assert.match(app, /Fisher.*95%/); assert.match(app, /independent calls/); assert.match(app, /RMSE/);
+  // Test what the summary renders, without requiring the jargon removed in review.
+  const context = { A, h: (tag, attrs, ...children) => ({ tag, children: children.flat(Infinity) }) };
+  vm.runInNewContext(app.slice(app.indexOf('function analysisCard('), app.indexOf('function companyNote(')) + '\nglobalThis.summaryCard = analysisCard;', context);
+  const result = A.analyze(data(rows));
+  const text = node => typeof node === 'object' && node !== null ? (node.children || []).map(text).join(' ') : String(node ?? '');
+  const displayed = text(context.summaryCard(result));
+  assert.match(displayed, /Held-out prediction error/);
+  assert.match(displayed, /approximate 95% range/);
+  assert.match(displayed, /independence assumption/);
+  assert.match(displayed, /does not test predictions of future calls/);
+  assert.match(displayed, /percentage points/);
+  assert.ok(displayed.includes((result.summary.rmse_eps * 100).toFixed(2)));
+  assert.doesNotMatch(displayed, /Fisher|RMSE|Folds|backtest|Delete-one-call/);
   assert.match(fs.readFileSync(__dirname + '/index.html', 'utf8'), /analysis\.js/);
 });
 test('historical EPS warnings remain clearly attributed to the historical fit', () => {

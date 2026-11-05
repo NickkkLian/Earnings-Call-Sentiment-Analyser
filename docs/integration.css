@@ -154,3 +154,59 @@ header button { flex-shrink: 0; }
   #calls table.record-table .cell-value,#table-view table.record-table .cell-value { flex: 0 1 auto; text-align: left; }
   #calls table.record-table th.num button { width: auto; }
 }
+
+/* Review 2: compact records and balanced research sections. */
+
+@media(max-width:700px) {
+  #calls table.record-table { background: transparent; }
+  #calls table.record-table tbody { padding: 0; justify-items: start; gap: 12px; }
+  #calls table.record-table thead tr { padding: 8px 0 12px; }
+  #calls table.record-table tbody > tr {
+    display: grid; grid-template-columns: repeat(2,minmax(0,max-content));
+    gap: 12px 20px; align-items: start; justify-content: start;
+    width: fit-content; max-width: 100%; padding: 12px; background: var(--soft);
+  }
+  #calls table.record-table tbody td,#calls table.record-table tbody td.num {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+    padding: 0; width: auto; min-width: 0; max-width: 100%; height: auto;
+    text-align: left; background: transparent; border: 0; overflow-wrap: anywhere;
+  }
+  #calls table.record-table .cell-label { font: 400 12px/1.4 var(--body); }
+  #calls table.record-table .cell-value { font: 400 14px/1.4 var(--body); min-width: 0; max-width: 100%; }
+  #calls table.record-table td.num .cell-value { font-family: var(--mono); }
+  #calls table.record-table td[data-empty=true] { display: none; }
+  #calls table.record-table td.actions { align-self: end; }
+  #calls table.record-table td.actions .cell-label { display: none; }
+  #calls table.record-table td.actions .btn { min-height: 32px; height: 32px; padding: 0 8px; }
+}
+
+#table-view table.compact-table { display: table; width: 100%; min-width: 0; max-width: 100%; border-collapse: collapse; table-layout: auto; }
+#table-view table.compact-table thead { display: table-header-group; }
+#table-view table.compact-table tbody { display: table-row-group; }
+#table-view table.compact-table thead tr,#table-view table.compact-table tbody > tr { display: table-row; background: transparent; }
+#table-view table.compact-table th,#table-view table.compact-table tbody td,#table-view table.compact-table tbody td.num { display: table-cell; width: auto; max-width: none; height: auto; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+#table-view table.compact-table th.num,#table-view table.compact-table tbody td.num { text-align: right; }
+#table-view table.compact-table .cell-label { display: none; }
+#table-view table.compact-table .cell-value { display: block; font-size: 14px; }
+#table-view table.compact-table th button { padding: 0; min-height: 32px; background: transparent; width: auto; }
+
+#legacy-workspace .analysis-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 28px; }
+#legacy-workspace .analysis-columns section { min-width: 0; }
+#legacy-workspace .analysis-columns h3 { margin: 0 0 12px; font-size: 18px; }
+#legacy-workspace .analysis-columns p { max-width: none; margin-top: 12px; }
+#legacy-workspace .prediction-facts { display: grid; grid-template-columns: minmax(0,max-content) max-content; gap: 12px 20px; width: max-content; max-width: 100%; margin: 16px 0; font-size: 14px; }
+#legacy-workspace .prediction-facts dd { margin: 0; font-family: var(--mono); }
+#legacy-workspace .topics-card,#legacy-workspace .extracts-card { margin-bottom: 16px; }
+#legacy-workspace .topics-card .topics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px 24px; }
+#legacy-workspace .topics-card .topic { min-width: 0; padding: 8px 0; }
+#legacy-workspace .extract-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); gap: 12px; }
+#legacy-workspace .extract-grid .extract { margin: 0; }
+@media(max-width:1100px) { #legacy-workspace .topics-card .topics { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) {
+  #legacy-workspace .analysis-columns,#legacy-workspace .topics-card .topics { grid-template-columns: minmax(0,1fr); gap: 20px; }
+  #calls table.record-table tbody > tr { grid-template-columns: repeat(3,minmax(0,max-content)); gap: 12px 16px; }
+  #table-view table.compact-table th,#table-view table.compact-table tbody td { padding: 10px 4px; }
+}
+
+#table-view table.compact-table thead th { display: table-cell; position: static; }
+#table-view table.compact-table td.num .cell-value { text-align: right; font-family: var(--mono); }
