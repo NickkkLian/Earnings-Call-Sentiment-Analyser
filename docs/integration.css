@@ -113,6 +113,18 @@ header button { flex-shrink: 0; }
 #legacy-workspace table { width: max-content; max-width: 100%; }
 #legacy-workspace .combo-trigger { height: 40px; min-height: 40px; background: var(--surface); font-weight: 400; }
 #details .dialog-title { padding: 4px; }
+#legacy-workspace .research-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-bottom: 16px; align-items: start; }
+#legacy-workspace .research-column { display: grid; gap: 16px; min-width: 0; }
+@media(max-width:1100px) { #legacy-workspace .research-columns { grid-template-columns: minmax(0,1fr); } }
+@media(max-width:700px) {
+  #calls table.record-table td,#table-view table.record-table td {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px;
+    justify-content: flex-start; text-align: left; padding: 6px 0;
+  }
+  #calls table.record-table .cell-label,#table-view table.record-table .cell-label { flex: 0 0 auto; }
+  #calls table.record-table .cell-value,#table-view table.record-table .cell-value { flex: 0 1 auto; text-align: left; }
+  #calls table.record-table th.num button { width: auto; }
+}
 @media(max-width:1100px) {
   #legacy-workspace .panels,#legacy-workspace .panels-2 { grid-template-columns: minmax(0,1fr); }
 }
@@ -131,3 +143,14 @@ header button { flex-shrink: 0; }
 }
 
 #legacy-workspace .combo-trigger { height: auto; min-height: 40px; padding: 8px 12px; }
+
+/* Keep schema text and register controls visible at tablet widths too. */
+#legacy-workspace pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
+.exhibit:has(#sources-view:not([hidden])) { min-height: 0; }
+@media(max-width:1100px) {
+  #calls table { min-width: 0; }
+  #calls .table-scroll { overflow: visible; max-height: none; }
+  #calls table.record-table td,#table-view table.record-table td { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  #calls table.record-table .cell-value,#table-view table.record-table .cell-value { flex: 0 1 auto; text-align: left; }
+  #calls table.record-table th.num button { width: auto; }
+}

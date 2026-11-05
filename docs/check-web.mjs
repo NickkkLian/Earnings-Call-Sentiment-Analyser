@@ -52,7 +52,24 @@ check('real quotes: at most 4 per company, each at most 25 words', Object.values
 check('the page opens on the real data and Sample JSON downloads the synthetic file, named as such', /const S = \{ data: REAL,/.test(app) && /JSON\.stringify\(DEMO, null, 2\)[\s\S]{0,120}dashboard_sample_synthetic\.json/.test(app) && !/fictional companies/.test(html.split('<footer')[0]));
 check('a topic one section did not discuss is flagged, so the page shows a dash instead of a 0.00 tone', Object.values(real).every(c => c.topics.every(t => (t.mgmt_missing === true) + (t.qa_missing === true) < 2)) && /t\.qa_missing === true \? h\('span', \{ class: 'muted'/.test(app));
 check('with fewer than 30 calls the correlation is labelled as too few points for a finding', /qs\.length < 30 \? ` — far too few points for r to show a relationship/.test(app));
-check('the residual axis picks its step so it draws at most about six gridlines', /step = \[0\.01, 0\.02, 0\.05, 0\.1, 0\.2, 0\.25, 0\.5, 1, 2, 5\]\.find\(s => \(ymax - ymin\) \/ s <= 6\)/.test(app));
+// Exercise chart geometry rather than matching an implementation string. The old regex passed
+// even when points lay beyond the outer ticks and the rotated title collided with tick labels.
+ctx.chartWidth = () => 490;
+ctx.h = (tag, attrs = {}, ...children) => ({ tag, attrs, children: children.flat(Infinity).filter(x => x !== null) });
+ctx.tone = v => v.toFixed(2); ctx.pct = v => (v * 100).toFixed(1) + '%';
+vm.runInNewContext(app.slice(app.indexOf('function scatter('), app.indexOf('// What the default data is:')) + '\nglobalThis.__scatter = scatter;', ctx);
+const chartCases = Object.values(real).map(c => c.quarters).concat([
+  [-3, 0, 4].map((v, i) => ({ mgmt: i / 10, qa: 0, residual_5d: v, eps_surprise: 0, label: String(i) })),
+  [0, 0].map(v => ({ mgmt: 0, qa: 0, residual_5d: v, eps_surprise: 0, label: 'Flat' }))
+]);
+const geometry = chartCases.map(quarters => {
+  const svg = ctx.__scatter(quarters), grid = svg.children.filter(x => x.tag === 'line' && x.attrs.class === 'grid');
+  const ys = grid.map(x => x.attrs.y1), first = Math.min(...ys), last = Math.max(...ys);
+  const points = svg.children.filter(x => x.tag === 'circle');
+  const xticks = svg.children.filter(x => x.tag === 'text' && /^[−+\-]?\d+\.\d+$/.test(String(x.children[0])));
+  return { grid: grid.length, padding: points.every(p => p.attrs.cy - p.attrs.r > first + 3 && p.attrs.cy + p.attrs.r < last - 3), xticks: xticks.length };
+});
+check('residual chart includes padded outer ticks and x-axis values for real, wide-range and flat data', geometry.every(g => g.grid >= 3 && g.grid <= 8 && g.padding && g.xticks >= 3), JSON.stringify(geometry));
 // a topic's weight is a share of one half of the call (prepared remarks or Q&A), so the page must never call it a share of the call
 check('a topic share names the half it is a share of, and the page nowhere says "% of call"', ctx.__ts({ weight: 0.28, mgmt: 0.7, qa: 0, qa_missing: true }) === '28% of remarks' && ctx.__ts({ weight: 0.22, mgmt: 0, qa: 0.5, mgmt_missing: true }) === '22% of Q&A' && ctx.__ts({ weight: 0.25, mgmt: 0.7, qa: 0.2 }) === '25% of each half' && !/% of call/.test(app) && !/share of airtime/.test(app));
 const oneSided = Object.values(real).filter(c => c.topics.every(t => t.mgmt_missing === true || t.qa_missing === true));

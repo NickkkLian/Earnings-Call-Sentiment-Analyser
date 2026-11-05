@@ -48,7 +48,7 @@ function chartWidth() {
   return Math.max(288, Math.floor(column - (innerWidth <= 700 ? 32 : 48)));
 }
 function trajectory(quarters) {
-  const W = chartWidth(), H = 260, L = 36, R = 40, T = 14, B = 34, n = quarters.length;
+  const W = chartWidth(), H = 260, L = 48, R = 40, T = 14, B = 34, n = quarters.length;
   const labelStep = Math.max(1, Math.ceil((n - 1) / Math.max(1, Math.floor((W - L - R) / 80))));
   const x = i => L + (n > 1 ? i / (n - 1) : 0.5) * (W - L - R), y = v => T + (1 - (v + 0.5) / 1.5) * (H - T - B);
   const pathOf = key => quarters.map((q, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(q[key]).toFixed(1)}`).join(' ');
@@ -60,26 +60,36 @@ function trajectory(quarters) {
     quarters.map((q, i) => [h('circle', { class: 'dot-mgmt', cx: x(i), cy: y(q.mgmt), r: 3.5 }, h('title', {}, `${q.label} management ${tone(q.mgmt)}`)), h('circle', { class: 'dot-qa', cx: x(i), cy: y(q.qa), r: 3.5 }, h('title', {}, `${q.label} analysts ${tone(q.qa)}`)), i === n - 1 || i % labelStep === 0 && x(n - 1) - x(i) >= 70 ? h('text', { x: x(i), y: H - 12, 'text-anchor': 'middle' }, q.label) : null]));
 }
 function scatter(quarters) {
-  const W = chartWidth(), H = 260, L = 44, R = 14, T = 14, B = 40;
+  const W = chartWidth(), H = 300, L = 58, R = 22, T = 40, B = 64;
   const xs = quarters.map(q => q.mgmt - q.qa), ys = quarters.map(q => q.residual_5d);
-  const xmin = Math.min(0, ...xs) - 0.05, xmax = Math.max(0, ...xs) + 0.05, ymin = Math.min(0, ...ys) - 0.02, ymax = Math.max(0, ...ys) + 0.02;
+  const niceStep = (span,divisions=4) => {
+    const raw=span/divisions, power=10**Math.floor(Math.log10(raw));
+    return [1,2,2.5,5,10].map(n=>n*power).find(n=>n>=raw);
+  };
+  const yPad=Math.max(.02,(Math.max(...ys)-Math.min(...ys))*.12);
+  const step=niceStep(Math.max(0,...ys)+yPad-(Math.min(0,...ys)-yPad));
+  const ymin=Math.floor((Math.min(0,...ys)-yPad)/step)*step,ymax=Math.ceil((Math.max(0,...ys)+yPad)/step)*step;
+  const xstep=niceStep(Math.max(.2,Math.max(0,...xs)-Math.min(0,...xs)+.1),W<360?2:4);
+  const xmin=Math.floor((Math.min(0,...xs)-.025)/xstep)*xstep,xmax=Math.ceil((Math.max(0,...xs)+.025)/xstep)*xstep;
   const x = v => L + (v - xmin) / (xmax - xmin) * (W - L - R), y = v => T + (1 - (v - ymin) / (ymax - ymin)) * (H - T - B);
-  // about five labelled gridlines whatever the range (a fixed 5 pp step drew dozens of overlapping labels once real
-  // residuals spanned more than 100%)
-  const yt = [], step = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5].find(s => (ymax - ymin) / s <= 6) || 10; for (let v = Math.ceil(ymin / step) * step; v <= ymax + 1e-9; v += step) yt.push(+v.toFixed(3));
+  const yt=[],xt=[];
+  for(let v=ymin;v<=ymax+step/100;v+=step)yt.push(+v.toFixed(8));
+  for(let v=xmin;v<=xmax+xstep/100;v+=xstep)xt.push(+v.toFixed(8));
   return h('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Sentiment gap versus 5-day residual return, one point per call' },
+    h('text', { x: L, y: 18 }, '5-day residual return'),
     yt.map(v => [h('line', { class: 'grid', x1: L, x2: W - R, y1: y(v), y2: y(v) }), h('text', { x: L - 6, y: y(v) + 3, 'text-anchor': 'end' }, `${(v * 100).toFixed(0)}%`)]),
+    xt.map(v=>[h('line',{class:'axis',x1:x(v),x2:x(v),y1:H-B,y2:H-B+5}),h('text',{x:x(v),y:H-B+24,'text-anchor':'middle'},v.toFixed(2))]),
     h('line', { class: 'zero', x1: L, x2: W - R, y1: y(0), y2: y(0) }), h('line', { class: 'zero', y1: T, y2: H - B, x1: x(0), x2: x(0) }),
     quarters.map((q, i) => h('circle', { class: 'pt ' + (q.residual_5d > 0 ? 'up' : 'down'), cx: x(q.mgmt - q.qa), cy: y(q.residual_5d), r: 5, opacity: 0.45 + 0.55 * (i / Math.max(1, quarters.length - 1)) }, h('title', {}, `${q.label}: gap ${tone(q.mgmt - q.qa)}, residual ${pct(q.residual_5d)}, EPS surprise ${pct(q.eps_surprise)}`))),
-    h('text', { x: (L + W - R) / 2, y: H - 8, 'text-anchor': 'middle' }, 'Tone gap'),
-    h('text', { x: 12, y: (T + H - B) / 2, transform: `rotate(-90 12 ${(T + H - B) / 2})`, 'text-anchor': 'middle' }, '5-day residual return'));
+    h('text', { x: (L + W - R) / 2, y: H - 8, 'text-anchor': 'middle' }, 'Tone gap'));
 }
 // What the default data is: which calls, where each transcript came from, which model scored it and when
 function provenance() {
   const byCo = new Map(); for (const c of META.calls) { if (!byCo.has(c.company)) byCo.set(c.company, []); byCo.get(c.company).push(c); }
   const groups = [...byCo].map(([co, cs], i) => [i ? ' · ' : '', `${co} `, cs.map((c, j) => [j ? ', ' : '', h('a', { href: c.source_page, rel: 'noopener', title: `call ${c.call_date}` }, c.label)])]);
-  return h('p', { class: 'provenance' }, h('b', {}, `Real data, ${META.calls.length} calls: `), groups, `. Scored from each company's own transcript by ${META.model}, run ${META.run_date}. EPS estimates and prices: Yahoo Finance.`);
+  return h('p', { class: 'provenance' }, h('b', {}, `Real data, ${META.calls.length} calls: `), groups, `. Scored from each company's own transcript by ${modelName()}, an AI model, on ${META.run_date}. EPS estimates and prices: Yahoo Finance.`);
 }
+function modelName() { return META.model==='claude-sonnet-5' ? 'Claude Sonnet 5' : META.model.replace(/-/g,' '); }
 function pearson(xs, ys) { const n = xs.length; if (n < 3) return null; const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null; }
 
 // The residual is the file's number; the page re-derives it from the file's own parts so a reader can check it:
@@ -87,7 +97,7 @@ function pearson(xs, ys) { const n = xs.length; if (n < 3) return null; const mx
 // A difference within 0.05 percentage points counts as reconciled. Missing components never count as a pass.
 function recSummary(data, tickers, calls) {
   const recs = tickers.flatMap(t => data[t].quarters.map(q => reconcile(data[t], q))), checkable = recs.filter(r => r.checkable), passing = checkable.filter(r => r.ok).length;
-  const text = checkable.length === 0 ? `0/${calls} checkable` : checkable.length === calls ? `${passing}/${calls} reconcile` : `${passing}/${checkable.length} reconcile · ${calls - checkable.length} not checkable`;
+  const text = checkable.length === 0 ? `None of the ${calls} return calculations can be checked from this file` : `${passing} of ${checkable.length} return calculations match their components${checkable.length<calls ? `; ${calls-checkable.length} lack inputs` : ''}`;
   return h('span', { class: passing < checkable.length ? 'bad' : '' }, text);
 }
 function reconcile(c, q) {
@@ -117,7 +127,7 @@ function analysisCard(result) {
 function topicShare(t) { const p = `${(t.weight * 100).toFixed(0)}%`; return t.qa_missing === true ? `${p} of remarks` : t.mgmt_missing === true ? `${p} of Q&A` : `${p} of each half`; }
 function topicsNote(topics) {
   const both = topics.filter(t => t.mgmt_missing !== true && t.qa_missing !== true).length;
-  return both === 0 ? 'No topic was named in both halves of this call, so there is no topic-level gap to show: M topics are what management raised, Q topics what analysts asked about.'
+  return both === 0 ? 'No topic was named in both halves of this call, so there is no topic-level gap to show: Management topics come from prepared remarks; analyst topics come from questions.'
     : `${both} of ${topics.length} topics ${both === 1 ? 'was' : 'were'} named in both halves; a wide gap there shows where analysts push back against management framing.`;
 }
 
@@ -179,7 +189,7 @@ function renderPage() {
   const c = data[S.ticker], qs = c.quarters, cur = qs[qs.length - 1], prev = qs[qs.length - 2] || cur;
   const calls = tickers.reduce((a, t) => a + data[t].quarters.length, 0);
   $('#pill-short').textContent = S.custom ? 'Your file' : 'Real calls';
-  $('#pill-long').textContent = S.custom ? ' · loaded in this tab' : ` · ${new Set(META.calls.map(c => c.ticker)).size} companies · ${META.calls.length} calls · ${META.model} · run ${META.run_date}`;
+  $('#pill-long').textContent = S.custom ? ' · loaded in this tab' : ` · ${new Set(META.calls.map(c => c.ticker)).size} companies · ${META.calls.length} calls · scored by ${modelName()}, an AI model · ${META.run_date}`;
   $('#reset').hidden = !S.custom;
   // the address always names the company on screen, so a reload or a shared link opens the same one
   if (fromHash() !== S.ticker) history.replaceState(null, '', '#' + encodeURIComponent(S.ticker));
@@ -209,11 +219,13 @@ function renderPage() {
   const maxW = Math.max(0.001, ...c.topics.map(t => t.weight));
   panel.append(h('div', { class: 'panels' },
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Multi-quarter sentiment trajectory'), h('p', {}, `Management prepared remarks vs analyst Q&A · ${qs.length} ${qs.length === 1 ? 'quarter' : 'quarters'} · shaded band = framing gap`)), trajectory(qs), h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'background:var(--viz-1)' }), 'Management'), h('span', {}, h('i', { style: 'background:var(--viz-2)' }), 'Analyst Q&A'), h('span', {}, h('i', { style: 'background:var(--viz-1);opacity:.25;height:8px' }), 'Framing gap'))),
-    h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Topic emphasis'), h('p', {}, `${cur.label} · the six largest themes the model named; each % is a share of the half it came from (prepared remarks or Q&A), so the list does not add up to 100%`)), h('div', { class: 'topics' }, c.topics.length ? c.topics.map(t => { const g = t.mgmt - t.qa, one = t.mgmt_missing === true || t.qa_missing === true; return h('div', { class: 'topic' }, h('div', { class: 'head' }, h('b', {}, t.name), h('span', { class: 'mono muted' }, topicShare(t))), h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, t.weight / maxW * 100)}%` })), h('div', { class: 'tones' }, t.mgmt_missing === true ? h('span', { class: 'muted', title: 'not a topic of the prepared remarks' }, 'M —') : h('span', { class: cls(t.mgmt) }, 'M ' + tone(t.mgmt)), t.qa_missing === true ? h('span', { class: 'muted', title: 'not a topic of the Q&A' }, 'Q —') : h('span', { class: cls(t.qa) }, 'Q ' + tone(t.qa)), !one && Math.abs(g) > 0.25 ? h('span', { class: 'tag tag-warning' }, 'gap ' + tone(g)) : null)); }) : h('p', { class: 'muted' }, 'No topics in this file.')), c.topics.length ? h('p', { class: 'hint', style: 'margin-top:12px' }, topicsNote(c.topics)) : null)));
+    h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Topic emphasis'), h('p', {}, `${cur.label} · the six largest themes the model named; each % is a share of the half it came from (prepared remarks or Q&A), so the list does not add up to 100%`)), h('div', { class: 'topics' }, c.topics.length ? c.topics.map(t => { const g = t.mgmt - t.qa, one = t.mgmt_missing === true || t.qa_missing === true; return h('div', { class: 'topic' }, h('div', { class: 'head' }, h('b', {}, t.name), h('span', { class: 'mono muted' }, topicShare(t))), h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, t.weight / maxW * 100)}%` })), h('div', { class: 'tones' }, t.mgmt_missing === true ? h('span', { class: 'muted' }, 'Management: not discussed') : h('span', { class: cls(t.mgmt) }, 'Management ' + tone(t.mgmt)), t.qa_missing === true ? h('span', { class: 'muted' }, 'Analysts: not discussed') : h('span', { class: cls(t.qa) }, 'Analysts ' + tone(t.qa)), !one && Math.abs(g) > 0.25 ? h('span', { class: 'tag tag-warning' }, 'gap ' + tone(g)) : null)); }) : h('p', { class: 'muted' }, 'No topics in this file.')), c.topics.length ? h('p', { class: 'hint', style: 'margin-top:12px' }, topicsNote(c.topics)) : null)));
   const r = pearson(qs.map(q => q.mgmt - q.qa), qs.map(q => q.residual_5d)), swamped = qs.filter(q => controlDominates(c, q)).length;
   panel.append(h('div', { class: 'panels-2' },
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Sentiment gap vs residual return'), h('p', {}, `5-day post-call return after controlling for sector and EPS surprise · one point per call · Pearson r = ${r === null ? 'n/a' : r.toFixed(2)} over n = ${qs.length} calls${qs.length < 30 ? ` — far too few points for r to show a relationship; it is here to show the method, not a finding` : ' (not a trading signal)'}`)), scatter(qs), h('p', { class: 'hint', style: 'margin-top:8px' }, swamped ? `In ${swamped} of ${qs.length} ${qs.length === 1 ? 'call' : 'calls'} here the EPS-surprise control is larger than the return after the sector move, so the vertical axis mostly restates the EPS surprise with its sign flipped; a residual beyond ±100% is not a return.` : 'Quadrant of interest: wide gap and negative residual — management rosy, market unconvinced.')),
     h('div', { class: 'card' }, h('h2', {}, 'Notable extracts'), h('p', { class: 'hint', style: 'margin-bottom:12px' }, S.custom ? `${cur.label} · passages the model tagged` : `${cur.label} · passages the model tagged in the prepared remarks, word for word, 25 words at most`), c.extracts.length ? c.extracts.map(e => h('div', { class: 'extract' }, h('div', {}, h('span', { class: 'cat' }, e.tag)), h('div', {}, h('q', {}, esc(e.text)), h('div', { class: 'who' }, '— ' + esc(e.speaker))))) : h('p', { class: 'muted' }, 'No extracts in this file.'))));
+  const columns=panel.querySelector('.panels'), lower=panel.querySelector('.panels-2');
+  if(columns&&lower){const [trajectoryCard,topicsCard]=[...columns.children],[scatterCard,extractsCard]=[...lower.children];columns.className='research-columns';columns.replaceChildren(h('div',{class:'research-column'},trajectoryCard,scatterCard),h('div',{class:'research-column'},topicsCard,extractsCard));lower.remove();}
   main.append(h('div', { class: 'card' }, h('h2', {}, 'Methodology'), h('div', { class: 'method' }, h('div', {}, h('p', {}, 'Each transcript is split into prepared remarks and analyst Q&A and scored separately by the model against a fixed JSON schema, written into the prompt and validated, with one repair round (Anthropic, OpenAI, Gemini or an OpenAI-compatible server; native structured output is an option for Anthropic and OpenAI). Tone, hedging density, guidance confidence, topics and tagged passages come back as structured fields, so quarters are comparable.'), h('p', {}, '* Fitted residual = 5-day return − β·sector-ETF return − α − γ·EPS surprise. The page fits pooled OLS with an intercept on the other calls, leaving the displayed call out; β stays at the file’s sector-proxy value (1 on real data). It replaces the historical pipeline’s hand-picked γ residual in memory, without changing the scored source file. The target is gap (management − analyst tone) versus this held-out residual. The holdout prediction comparison instead predicts the sector-adjusted move using EPS + gap, EPS only, or the training mean, all trained without the held-out call. No chronological prediction or causation is claimed. If inputs or EPS variation are insufficient, the page labels the original file residuals and withholds the verdict. The residual is a model leftover, not a return anyone earned; the page warns when the EPS control dominates and whenever a residual passes ±100%.'), h('p', {}, 'Tags: tone is scored from −1 to +1. The headline sentiment gap (management tone − analyst Q&A tone) is tagged wide above 0.2 and normal otherwise. A topic is tagged gap when its management and Q&A tones differ by more than 0.25 either way; a topic found in only one section gets no gap tag. These cut-offs only choose the tags; no score or chart uses them.'), h('p', {}, 'The data on this page is one run of this pipeline on twelve real calls, the four most recent of each company, scored from the transcripts the companies publish themselves (', h('code', {}, 'python -m src.ir_run'), '). Analyst questions are scored as part of the Q&A section but never quoted, and no analyst is named. Load a JSON file produced by ', h('code', {}, 'python -m src.export_dashboard signals.csv'), ' to see your own run; the loader validates the shape and rejects malformed files with a specific message.')),
     h('div', {}, h('pre', { tabindex: '0', role: 'region', 'aria-label': 'Model output schema' }, `{
   "section": "prepared" | "qa",

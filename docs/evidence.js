@@ -68,7 +68,7 @@ window.addEventListener('call-render', event => {
   const scale = [...document.querySelectorAll('.chart-scale span')];
   scale.forEach((node, index) => node.textContent = `${(maximum*100*index/3).toFixed(maximum === .15 ? 0 : 1)}${index === 3 ? ' pp' : ''}`);
   $('#errors').innerHTML = errors.map(([name,value]) => `<div class="error-row" tabindex="0" data-name="${name}" data-error="${value === null ? 'Unavailable' : (value*100).toFixed(2)}"><span>${name}</span><div class="error-track"><div class="error-bar" style="width:${value === null ? 0 : value/maximum*100}%"></div></div><strong>${value === null ? 'n/a' : (value*100).toFixed(2)}</strong></div>`).join('');
-  $('#error-rows').innerHTML = errors.map(([name,value]) => `<tr tabindex="0"><td>${name}</td><td class="num">${value === null ? 'n/a' : (value*100).toFixed(2)}</td><td>${value === null ? 'Singular fit' : 'Held-out prediction'}</td></tr>`).join('');
+  $('#error-rows').innerHTML = errors.map(([name,value]) => `<tr tabindex="0"><td>${name}</td><td class="num">${value === null ? 'Unavailable: singular fit' : (value*100).toFixed(2)}</td></tr>`).join('');
   if (!summary) $('#errors').textContent = sample.analysis.reason;
   document.querySelectorAll('.error-row').forEach(row => {
     const readout = () => $('#chart-readout').textContent = `${row.dataset.name} · ${row.dataset.error} percentage points of prediction error`;
