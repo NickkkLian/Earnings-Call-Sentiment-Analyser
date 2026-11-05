@@ -1,9 +1,11 @@
+/* Existing feature layouts, confined to the detailed workspace. */
+@scope (#legacy-workspace) {
 /* app.css — CallDelta. Consumes only semantic tokens from design-tokens.css. Base + family components + dashboard layout. */
 /* ===== Fallback faces: until the web fonts load (or if they never do), system fonts are scaled to the measured widths so line lengths and column widths do not jump ===== */
-@font-face{font-family:"Fraunces Fallback";src:local("Georgia"),local("Times New Roman");size-adjust:93.3%}
-@font-face{font-family:"Fraunces Fallback";src:local("Georgia Bold"),local("Georgia-Bold"),local("Times New Roman Bold");font-weight:600 700;size-adjust:92.3%}
-@font-face{font-family:"Inter Fallback";src:local("Helvetica Neue"),local("Arial"),local("Segoe UI");size-adjust:106.5%}
-@font-face{font-family:"Space Mono Fallback";src:local("Menlo Regular"),local("Menlo-Regular"),local("Consolas"),local("DejaVu Sans Mono");size-adjust:101.7%}
+
+
+
+
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;height:100%}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:var(--weight-regular) var(--text-md)/var(--leading-normal) var(--font-sans);-webkit-tap-highlight-color:transparent;touch-action:manipulation;font-variant-numeric:lining-nums}
@@ -395,3 +397,5 @@ table.data th.num button{justify-content:flex-end;width:100%}
 .analysis h2{margin:var(--space-2) 0;font-size:clamp(1.2rem,2.5vw,1.65rem);line-height:1.3}
 .analysis p{margin-top:var(--space-2)}
 .analysis-result{font:var(--weight-semibold) var(--text-lg)/1.5 var(--font-mono);font-variant-numeric:tabular-nums}
+
+}

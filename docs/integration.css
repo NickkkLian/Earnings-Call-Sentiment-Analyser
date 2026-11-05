@@ -1,0 +1,50 @@
+
+html { color-scheme: light; }
+html[data-theme=dark] { color-scheme: dark; }
+body { min-width: 0; }
+main, section, figure, .panel { min-width: 0; }
+header button { flex-shrink: 0; }
+#legacy-workspace { font: 16px/1.5 var(--body); min-width: 0; }
+#legacy-workspace .main,#legacy-workspace .wrap { max-width: 100%; min-width: 0; }
+#legacy-workspace .card,#legacy-workspace .chart { background: var(--surface); border-radius: 12px; }
+#legacy-workspace h1 { font-size: clamp(28px,3vw,40px); }
+#legacy-workspace h2 { font-size: 24px; }
+#legacy-workspace .tag,#legacy-workspace .chip,#legacy-workspace .reason { height: auto; min-height: 24px; white-space: normal; }
+#legacy-workspace .toolbar,#legacy-workspace .actions,#legacy-workspace .chips { flex-wrap: wrap; }
+#legacy-workspace .chart { overflow: auto; }
+#legacy-workspace .chart svg { min-width: 600px; width: 100%; }
+#legacy-workspace .chart svg text { font-size: 14px; }
+#legacy-workspace pre { max-width: 100%; overflow: auto; }
+#legacy-workspace input,#legacy-workspace select,#legacy-workspace textarea { max-width: 100%; }
+#legacy-workspace .hint,#legacy-workspace small { font-size: 12px; }
+#legacy-workspace button { white-space: normal; height: auto; min-height: 36px; }
+.toasts { position: fixed; bottom: 16px; left: 16px; right: 16px; z-index: 50; }
+.toast { white-space: normal; }
+#workbook-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+#shortcut-settings label { display: flex; gap: 12px; align-items: center; }
+#shortcut-settings input { width: 20px; height: 20px; }
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration: 0s !important; transition-duration: 0s !important; } }
+
+#open-details { margin-left: 0; }
+.phone-label { display: none; }
+.detail-toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+#pill { font-size: 12px; color: var(--muted); flex-basis: 100%; }
+#details { width: min(1160px,100%); }
+#details .wrap { padding: 0; }
+#details .analysis { margin-top: 16px; }
+#details .ticker-tabs { flex-wrap: wrap; }
+#calls .table-scroll { max-height: calc(100dvh - 220px); }
+#calls th { position: sticky; top: 0; }
+@media(max-width:700px) {
+  header { gap: 8px; flex-wrap: wrap; }
+  header .sample-chip { padding: 4px 8px; }
+  #open-details { font-size: 12px; padding: 0 8px; margin-left: auto; }
+  .desktop-label { display: none; }
+  .phone-label { display: inline; }
+  header .theme-toggle { margin-left: 0; }
+  #details,#calls { padding: 16px; }
+  #legacy-workspace .strip { grid-template-columns: minmax(0,1fr); }
+  #legacy-workspace .company .kpis { flex-wrap: wrap; justify-content: flex-start; gap: 16px; }
+}
+
+.toast { width: max-content; }

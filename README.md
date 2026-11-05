@@ -20,9 +20,9 @@ An earnings call has two halves: what management chose to say, and what analysts
 
 [![Check](https://img.shields.io/github/actions/workflow/status/NickkkLian/Earnings-Call-Sentiment-Analyser/check.yml?branch=main&label=check&style=flat-square&labelColor=2f5859)](https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser/actions/workflows/check.yml)
 
-![CallDelta dashboard: pooled verdict and fitted EPS residual analysis on the twelve real calls](docs/screenshot-dashboard.png)
+![CallDelta evidence view with the fitted correlation interval and three held-out prediction errors](docs/screenshot-dashboard.png)
 
-The page opens on Microsoft, whose latest call scored the same tone for both halves (gap 0.00). The pooled verdict covers all companies and remains first on every tab.
+The page opens on the pooled evidence from all twelve calls. **Inspect the 12 calls** opens the source register. **Company analysis** opens the full company view, including tone trajectories, topic shares, extracts, residual checks and the JSON loader. Company links such as `#MSFT` still open that company's analysis.
 
 ## Try it
 
@@ -71,7 +71,7 @@ Replace the fictional tickers with real ones FMP has transcripts for (most US-li
 ## How it fits together
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "fontFamily": "Inter, BlinkMacSystemFont, Segoe UI, Helvetica Neue, Helvetica, Arial", "primaryColor": "#dae7db", "mainBkg": "#dae7db", "primaryTextColor": "#1d1b24", "nodeTextColor": "#1d1b24", "textColor": "#1d1b24", "primaryBorderColor": "#2f5859", "nodeBorder": "#2f5859", "secondaryColor": "#fae8eb", "tertiaryColor": "#f7e9e8", "lineColor": "#5f7f76", "arrowheadColor": "#5f7f76", "defaultLinkColor": "#5f7f76", "edgeLabelBackground": "#fae8eb", "clusterBkg": "#f7e9e8", "clusterBorder": "#a8707a", "titleColor": "#7d2d44"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "fontFamily": "Inter, BlinkMacSystemFont, Segoe UI, Helvetica Neue, Helvetica, Arial", "primaryColor": "#e6ebf2", "mainBkg": "#e6ebf2", "primaryTextColor": "#152032", "nodeTextColor": "#152032", "textColor": "#152032", "primaryBorderColor": "#546174", "nodeBorder": "#546174", "secondaryColor": "#ffffff", "tertiaryColor": "#f0f3f8", "lineColor": "#546174", "arrowheadColor": "#546174", "defaultLinkColor": "#546174", "edgeLabelBackground": "#ffffff", "clusterBkg": "#f0f3f8", "clusterBorder": "#cbd3df", "titleColor": "#963e58"}}}%%
 flowchart LR
   A["FMP transcript"] --> B["split_prepared_qa<br/>operator hand-off regex"]
   B --> C["LLM extraction<br/>JSON schema in the prompt · 5 providers<br/>Pydantic SectionAnalysis"]

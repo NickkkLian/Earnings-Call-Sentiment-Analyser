@@ -1,6 +1,6 @@
 /* app.js — CallDelta dashboard. Renders the JSON shape produced by src/export_dashboard.py. Opens on real model output for
    twelve earnings calls (real-data.js, written by src/ir_run.py); the synthetic demo file is only the Sample JSON download.
-   No dependencies, no network requests (fonts aside). Charts are hand-drawn SVG. */
+   No dependencies. Fonts are self-hosted. Charts are hand-drawn SVG. */
 (() => {
 'use strict';
 const DEMO = window.CALLDELTA_DEMO, REAL = window.CALLDELTA_REAL, META = window.CALLDELTA_REAL_META;
@@ -144,7 +144,8 @@ function focusKey(el) {
 // return main first, whose ring was off screen)
 function firstHeading() {
   const seen = x => { const r = x.getBoundingClientRect(), cs = getComputedStyle(x); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && !/inset\(50%\)|rect\(0/.test(cs.clipPath + cs.clip); };
-  const x = [...document.querySelectorAll('main h1')].find(seen) || [...document.querySelectorAll('main h2')].find(seen) || $('#main');
+  const scope = $('#details').open ? $('#details') : $('#evidence');
+  const x = [...scope.querySelectorAll('h1')].find(seen) || [...scope.querySelectorAll('h2')].find(seen) || scope;
   if (x && !x.hasAttribute('tabindex')) x.setAttribute('tabindex', '-1');
   return x;
 }
@@ -155,7 +156,7 @@ function restoreFocus(find) {
   if (el) { el.focus(); if (document.activeElement !== el && (el = firstHeading())) el.focus(); }   // a disabled control does not take focus
   if (el && find.caret && el.setSelectionRange) try { el.setSelectionRange(find.caret[0], find.caret[1]); } catch (e) { /* not a text field */ }
 }
-function render() { const find = focusKey(document.activeElement); renderPage(); restoreFocus(find); }
+function render() { const find = focusKey(document.activeElement); renderPage(); window.dispatchEvent(new CustomEvent('call-render', { detail: { result: A.analyze(S.data), custom: S.custom } })); restoreFocus(find); }
 // Arrow keys, Home and End move between the company tabs and open the one they land on (the WAI-ARIA tabs pattern).
 function roving(e) {
   const opt = e.target.closest && e.target.closest('[role="radio"], [role="tab"]'), group = opt && opt.closest('[role="radiogroup"], [role="tablist"]');
@@ -242,9 +243,9 @@ function init() {
   $('#load').addEventListener('click', () => $('#file').click()); $('#file').addEventListener('change', e => { loadFile(e.target.files[0]); e.target.value = ''; });
   $('#reset').addEventListener('click', () => { S.data = REAL; S.custom = false; S.ticker = Object.keys(REAL)[0]; render(); toast('Back to the real calls'); });
   document.addEventListener('dragover', e => e.preventDefault()); document.addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
-  const t = fromHash(); if (t && REAL[t]) S.ticker = t;
+  const t = fromHash(); if (t && REAL[t]) { S.ticker = t; document.querySelector('#details').showModal(); }
   // any other address (the home link's "#", an old ticker) shows the first company, and render() writes its ticker back
-  window.addEventListener('hashchange', () => { const t = fromHash(); S.ticker = S.data[t] ? t : Object.keys(S.data)[0]; render(); });
+  window.addEventListener('hashchange', () => { const t = fromHash(); S.ticker = S.data[t] ? t : Object.keys(S.data)[0]; render(); if (S.data[t] && !$('#details').open) $('#details').showModal(); });
   $('.skip').addEventListener('click', e => { e.preventDefault(); firstHeading().focus(); });   // "#main" in the address would be read as a ticker
   document.addEventListener('keydown', roving);
   render();

@@ -1,0 +1,3 @@
+:root { --display: "Lora",serif; --body: "Work Sans",sans-serif; --mono: "IBM Plex Mono",monospace; --radius: 6px; --surface-radius: 12px; --base: #f0f3f8; --surface: #ffffff; --soft: #e6ebf2; --text: #152032; --muted: #546174; --line: #cbd3df; --accent: #963e58; --selection: #f3e5eb; --shadow-color: #19233325; }
+:root[data-theme=dark] { --base: #0d1421; --surface: #172132; --soft: #202c40; --text: #edf1f8; --muted: #abb9ce; --line: #344157; --accent: #a8445e; --selection: #392636; --shadow-color: #02081390; --on-accent: var(--base); }
+:root[data-theme=dark] { --on-accent: #fff; }

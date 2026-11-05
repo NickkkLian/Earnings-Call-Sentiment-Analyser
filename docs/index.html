@@ -1,50 +1,19 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<script>/* appearance boot — runs before any stylesheet so the stored palette and light/dark apply on the first paint */(function(){try{var d=document.documentElement,L=window.localStorage,t=L.getItem('nl-theme'),s=L.getItem('nl-scheme');if(s===null){var o=L.getItem('theme')||L.getItem('qm-theme');if(o==='dark'||o==='light')s=o;}if(t==='paper'||t==='ink')d.setAttribute('data-theme',t);if(s==='dark'||s==='light')d.setAttribute('data-scheme',s);}catch(e){}})();</script>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Call tone vs. analyst pushback — not a trading signal. CallDelta scores earnings calls with structured LLM output and tracks the gap against residual returns. Opens on real model output for twelve recent earnings calls (four each for Microsoft, Alphabet and Meta), scored from the companies' own transcripts; load your own pipeline JSON.">
-<meta name="theme-color" content="#f7e9e8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#130e15" media="(prefers-color-scheme: dark)">
-<title>CallDelta</title>
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..600;1,9..144,400&family=Inter:wght@400..600&family=Space+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="design-tokens.css">
-<link rel="stylesheet" href="app.css">
-</head>
-<body>
-<a class="skip" href="#main">Skip to content</a>
-<header class="topbar">
-  <a class="brand" href="#" aria-label="CallDelta home">
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="19" height="19" rx="5" stroke="currentColor" stroke-width="2"/><rect x="14" y="6" width="4" height="4" rx="1" fill="var(--point)"/><path d="M6 17l3.5-3.5 3 2.5 5.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <b>CallDelta</b><span>Earnings-call tone vs. analyst pushback — a correlation, not a trading signal.</span>
-  </a>
-  <span class="pill" id="pill" title="Model output for twelve real earnings calls, scored from the companies' own transcripts. Load a JSON file from the pipeline to replace it."><span id="pill-short">Real calls</span><span class="long" id="pill-long"></span></span>
-  <span class="spacer"></span>
-  <button class="btn btn-primary" id="load">Load JSON</button>
-  <button class="btn btn-ghost" id="reset" hidden>Back to real calls</button>
-  <button class="btn btn-ghost btn-icon" id="theme" aria-label="Dark mode" aria-pressed="false" title="Dark mode"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
-  <button type="button" class="btn btn-ghost btn-icon" id="nl-settings-button" aria-haspopup="dialog" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.34 5.10L10.58 2.51L13.42 2.51L13.66 5.10A7.1 7.1 0 0 1 15.71 5.95L17.71 4.28L19.72 6.29L18.05 8.29A7.1 7.1 0 0 1 18.90 10.34L21.49 10.58L21.49 13.42L18.90 13.66A7.1 7.1 0 0 1 18.05 15.71L19.72 17.71L17.71 19.72L15.71 18.05A7.1 7.1 0 0 1 13.66 18.90L13.42 21.49L10.58 21.49L10.34 18.90A7.1 7.1 0 0 1 8.29 18.05L6.29 19.72L4.28 17.71L5.95 15.71A7.1 7.1 0 0 1 5.10 13.66L2.51 13.42L2.51 10.58L5.10 10.34A7.1 7.1 0 0 1 5.95 8.29L4.28 6.29L6.29 4.28L8.29 5.95A7.1 7.1 0 0 1 10.34 5.10Z"/><circle cx="12" cy="12" r="3"/></svg></button>
-  <a class="btn btn-ghost gh" href="https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser" rel="noopener">GitHub</a>
-  <input type="file" id="file" accept="application/json,.json" hidden>
-</header>
-<main class="wrap" id="main" tabindex="-1"></main>
-<footer class="honest">
-  <dl class="honest-in">
-    <div><dt>About this data</dt><dd>One run of the pipeline on the four most recent calls of three companies that publish full transcripts on their own investor-relations sites: Microsoft FY26 Q1–Q4, Alphabet and Meta Q3 2025–Q2 2026 (calls from October 2025 to July 2026). Scores by claude-sonnet-5, run 2026-09-25; EPS estimates and prices from Yahoo Finance. Quotes come only from the latest call's prepared remarks and are checked word for word against the transcript. Four quarters per company show how the scores moved, but four points are far too few to support any claim that tone predicts returns. The Sample JSON file is synthetic.</dd></div>
-    <div><dt>Not verified here</dt><dd>Whether the framing gap predicts returns (a few hundred calls would still be a small sample). The page fits the EPS control out of sample, but folds can contain later calls. Repeated companies and shared training folds invalidate the independence assumption behind the approximate interval. Sector proxies are ETFs, not a factor model; loaded files are validated for shape, not for correctness.</dd></div>
-    <div><dt>Source</dt><dd><a href="https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser" rel="noopener">github.com/NickkkLian/Earnings-Call-Sentiment-Analyser</a> · MIT · built by Nick Lian</dd></div>
-  </dl>
-</footer>
-<div class="toasts" id="toasts" aria-live="polite"></div>
-<script src="demo-data.js"></script>
-<script src="real-data.js"></script>
-<script src="appearance.js"></script>
-<script src="analysis.js"></script>
-<script src="app.js"></script>
-</body>
-</html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Explore earnings-call tone, fitted residuals and held-out prediction error with the project’s real analysis engine."><link rel="icon" href="favicon.svg" type="image/svg+xml"><title>CallDelta — Earnings-call evidence</title><link rel="stylesheet" href="fonts.css"><link rel="preload" href="fonts/Lora-Regular.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="design-tokens.css"><link rel="stylesheet" href="app.css"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="integration.css"></head>
+<body data-project="calldelta"><a class="skip" href="#evidence">Skip to work</a>
+
+<header data-header-form="sample-app-bar"><a class="wordmark" href="index.html">CallDelta</a><span class="sample-chip">12-call sample</span><span class="header-context">Microsoft, Alphabet and Meta</span><button id="open-details" class="ghost" aria-label="Company analysis"><span class="desktop-label">Company analysis</span><span class="phone-label">Analysis</span></button></header>
+<main id="evidence" data-alignment="finding-left-evidence-below" class="working-object">
+ <section class="finding"><div><h1>Analyst pushback adds no clear explanation</h1><p class="lede">The tone gap explains almost none of the post-call move left after accounting for earnings.</p><button class="primary" data-main-action id="inspect">Inspect the 12 calls <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button></div>
+ <figure class="correlation panel raised"><figcaption>Correlation with the unexplained move</figcaption><strong class="key-number">r = <span id="correlation-value">0.03</span></strong><div class="interval-chart" tabindex="0" role="img" aria-label="Correlation 0.03, approximate 95 percent interval minus 0.56 to plus 0.59, full scale minus 1 to plus 1"><div class="interval-track"></div><div class="interval-range"></div><div class="interval-zero"></div><div class="interval-point"></div><div class="interval-tooltip">95% interval −0.56 to +0.59</div></div><div class="axis-labels"><span>−1</span><span>0</span><span>+1</span></div><p>Only four calls per company. The interval assumes independent calls.</p></figure></section>
+ <section class="exhibit panel"><div class="exhibit-heading"><div><h2>Adding tone made prediction less accurate</h2><p>Held-out prediction error in percentage points. Lower is better.</p></div><nav class="segmented" aria-label="Evidence view"><button data-view="chart" aria-pressed="true">Chart</button><button data-view="table" aria-pressed="false">Table</button><button data-view="sources" aria-pressed="false">Sources</button></nav></div>
+ <div id="chart-view"><div class="chart-scale"><span>0</span><span>5</span><span>10</span><span>15 pp</span></div><div id="errors"></div><div id="chart-readout" role="status">Each call was predicted using the other 11 calls.</div></div>
+ <div id="table-view" class="table-scroll" hidden><table data-expand><thead><tr><th>Model</th><th class="num">Error, pp</th><th>Readout</th></tr></thead><tbody id="error-rows"></tbody></table></div>
+ <div id="sources-view" hidden><h3>Company transcripts and model scores</h3><p>12 real calls, scored 25 September 2026. Open the register for the transcript behind every observation.</p><button id="sources-register">Open call register</button><a class="button ghost" href="https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser">Calculation and data</a></div>
+ </section><div class="qualification"><span class="badge warning">Exploratory evidence</span><p>Repeated companies and overlapping training sets weaken independence. Removing one call moves r from −0.10 to +0.31.</p><button class="ghost" id="learn">About this data</button></div>
+</main><footer><span>5-day post-call returns · Model-scored tone</span><span>12 observations, with uncertainty kept in view</span></footer>
+<dialog id="calls" class="sheet"><div class="dialog-title"><h2>Call register</h2><button class="close" data-close aria-label="Close call register">✕</button></div><div class="register-controls"><label for="company">Company</label><select id="company"><option value="all">All three companies</option><option value="MSFT">Microsoft</option><option value="GOOGL">Alphabet</option><option value="META">Meta</option></select></div><p class="muted">Tone scale −1 to +1. The two-point trace connects management and analyst scores. It does not show time.</p><div class="table-scroll"><table data-expand><thead><tr><th>Company</th><th>Call</th><th>Tone trace</th><th class="num">Mgmt</th><th class="num">Analyst</th><th class="num">5-day move</th><th>Transcript</th></tr></thead><tbody id="call-rows"></tbody></table></div></dialog>
+<dialog id="method"><div class="dialog-title"><h2>Read this as an early test</h2><button data-close class="close" aria-label="Close data note">✕</button></div><p>There are only 12 observations. The approximate interval spans large negative and positive relationships. It assumes independent calls, although companies repeat and training samples overlap.</p><p>These observations cannot establish a trading signal. Earnings surprise is included before the tone gap is tested.</p></dialog>
+
+<dialog id="details" class="sheet"><div class="dialog-title"><h2>Company analysis</h2><button data-close class="close" aria-label="Close company analysis">Close</button></div><div class="detail-toolbar"><button id="load" class="primary">Load JSON</button><button id="reset" hidden>Back to real calls</button><span id="pill"><span id="pill-short"></span><span id="pill-long"></span></span><input type="file" id="file" accept="application/json,.json" hidden></div><div id="legacy-workspace"><div id="main" class="wrap"></div></div></dialog><div id="toasts" aria-live="polite"></div>
+<script src="base.js"></script><script src="demo-data.js"></script><script src="real-data.js"></script><script src="analysis.js"></script><script src="appearance.js"></script><script src="evidence.js"></script><script src="app.js"></script></body></html>
