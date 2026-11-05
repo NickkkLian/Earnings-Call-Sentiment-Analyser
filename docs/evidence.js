@@ -16,6 +16,7 @@ function renderCalls() {
     const trace = `<svg class="tone-trace" viewBox="0 0 72 28" role="img" aria-label="Management ${call.mgmt}, analysts ${call.qa}"><path d="M8 ${y(call.mgmt)}L64 ${y(call.qa)}"/><circle cx="8" cy="${y(call.mgmt)}" r="3"/><circle cx="64" cy="${y(call.qa)}" r="3"/></svg>`;
     return `<tr tabindex="0" data-detail="${escapeText(ticker)} ${escapeText(call.label)}. Management minus analyst tone ${signed(call.mgmt-call.qa,2)}. Open Source for the company transcript."><td>${escapeText(ticker)}</td><td>${escapeText(call.label)}</td><td>${trace}</td><td class="num">${signed(call.mgmt,2)}</td><td class="num">${signed(call.qa,2)}</td><td class="num">${signed(call.ret_5d*100,1)}%</td><td>${safeSource(call.source_page)}</td></tr>`;
   })).join('');
+  ui.enhanceTables($('#calls'));
   ui.fade($('#call-rows'));
 }
 $('#company').addEventListener('change',renderCalls);
@@ -79,6 +80,8 @@ window.addEventListener('call-render', event => {
   document.querySelectorAll('.error-bar').forEach(bar => ui.animate(bar, [{transform:'scaleX(.1)',opacity:.3},{transform:'scaleX(1)',opacity:1}], 220));
   ui.animate(document.querySelector('.key-number'), [{opacity:.3,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],180);
   document.documentElement.dataset.ready = 'true';
+  ui.enhanceTables(document.querySelector('#evidence'));
+  ui.enhanceTables(document.querySelector('#calls'));
 });
 
 })();

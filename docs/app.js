@@ -42,8 +42,14 @@ const esc = s => String(s ?? '');
 const fromHash = () => { try { return decodeURIComponent(location.hash.slice(1)); } catch (e) { return location.hash.slice(1); } };   // a stray % must not stop the page
 
 /* ---------- charts ---------- */
+function chartWidth() {
+  const inner = Math.min(innerWidth, 1160) - (innerWidth <= 700 ? 40 : 48);
+  const column = innerWidth > 1100 ? (inner - 16) / 2 : inner;
+  return Math.max(288, Math.floor(column - (innerWidth <= 700 ? 32 : 48)));
+}
 function trajectory(quarters) {
-  const W = 640, H = 260, L = 36, R = 24, T = 14, B = 34, n = quarters.length;   // R leaves half a quarter label of room (the last one was cut)
+  const W = chartWidth(), H = 260, L = 36, R = 40, T = 14, B = 34, n = quarters.length;
+  const labelStep = Math.max(1, Math.ceil((n - 1) / Math.max(1, Math.floor((W - L - R) / 80))));
   const x = i => L + (n > 1 ? i / (n - 1) : 0.5) * (W - L - R), y = v => T + (1 - (v + 0.5) / 1.5) * (H - T - B);
   const pathOf = key => quarters.map((q, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(q[key]).toFixed(1)}`).join(' ');
   const gap = quarters.map((q, i) => `${x(i).toFixed(1)},${y(q.mgmt).toFixed(1)}`).concat(quarters.map((q, i) => `${x(i).toFixed(1)},${y(q.qa).toFixed(1)}`).reverse()).join(' ');
@@ -51,10 +57,10 @@ function trajectory(quarters) {
     [-0.5, 0, 0.5, 1].map(v => [h('line', { class: v === 0 ? 'zero' : 'grid', x1: L, x2: W - R, y1: y(v), y2: y(v) }), h('text', { x: L - 6, y: y(v) + 3, 'text-anchor': 'end' }, v.toFixed(1))]),
     h('polygon', { class: 'gapfill', points: gap }),
     h('path', { class: 'mgmt', d: pathOf('mgmt') }), h('path', { class: 'qa', d: pathOf('qa') }),
-    quarters.map((q, i) => [h('circle', { class: 'dot-mgmt', cx: x(i), cy: y(q.mgmt), r: 3.5 }, h('title', {}, `${q.label} management ${tone(q.mgmt)}`)), h('circle', { class: 'dot-qa', cx: x(i), cy: y(q.qa), r: 3.5 }, h('title', {}, `${q.label} analysts ${tone(q.qa)}`)), h('text', { x: x(i), y: H - 12, 'text-anchor': 'middle' }, q.label)]));
+    quarters.map((q, i) => [h('circle', { class: 'dot-mgmt', cx: x(i), cy: y(q.mgmt), r: 3.5 }, h('title', {}, `${q.label} management ${tone(q.mgmt)}`)), h('circle', { class: 'dot-qa', cx: x(i), cy: y(q.qa), r: 3.5 }, h('title', {}, `${q.label} analysts ${tone(q.qa)}`)), i === n - 1 || i % labelStep === 0 && x(n - 1) - x(i) >= 70 ? h('text', { x: x(i), y: H - 12, 'text-anchor': 'middle' }, q.label) : null]));
 }
 function scatter(quarters) {
-  const W = 420, H = 260, L = 44, R = 14, T = 14, B = 40;
+  const W = chartWidth(), H = 260, L = 44, R = 14, T = 14, B = 40;
   const xs = quarters.map(q => q.mgmt - q.qa), ys = quarters.map(q => q.residual_5d);
   const xmin = Math.min(0, ...xs) - 0.05, xmax = Math.max(0, ...xs) + 0.05, ymin = Math.min(0, ...ys) - 0.02, ymax = Math.max(0, ...ys) + 0.02;
   const x = v => L + (v - xmin) / (xmax - xmin) * (W - L - R), y = v => T + (1 - (v - ymin) / (ymax - ymin)) * (H - T - B);
@@ -65,7 +71,7 @@ function scatter(quarters) {
     yt.map(v => [h('line', { class: 'grid', x1: L, x2: W - R, y1: y(v), y2: y(v) }), h('text', { x: L - 6, y: y(v) + 3, 'text-anchor': 'end' }, `${(v * 100).toFixed(0)}%`)]),
     h('line', { class: 'zero', x1: L, x2: W - R, y1: y(0), y2: y(0) }), h('line', { class: 'zero', y1: T, y2: H - B, x1: x(0), x2: x(0) }),
     quarters.map((q, i) => h('circle', { class: 'pt ' + (q.residual_5d > 0 ? 'up' : 'down'), cx: x(q.mgmt - q.qa), cy: y(q.residual_5d), r: 5, opacity: 0.45 + 0.55 * (i / Math.max(1, quarters.length - 1)) }, h('title', {}, `${q.label}: gap ${tone(q.mgmt - q.qa)}, residual ${pct(q.residual_5d)}, EPS surprise ${pct(q.eps_surprise)}`))),
-    h('text', { x: (L + W - R) / 2, y: H - 8, 'text-anchor': 'middle' }, 'sentiment gap (management − analysts) →'),
+    h('text', { x: (L + W - R) / 2, y: H - 8, 'text-anchor': 'middle' }, 'Tone gap'),
     h('text', { x: 12, y: (T + H - B) / 2, transform: `rotate(-90 12 ${(T + H - B) / 2})`, 'text-anchor': 'middle' }, '5-day residual return'));
 }
 // What the default data is: which calls, where each transcript came from, which model scored it and when
@@ -156,7 +162,7 @@ function restoreFocus(find) {
   if (el) { el.focus(); if (document.activeElement !== el && (el = firstHeading())) el.focus(); }   // a disabled control does not take focus
   if (el && find.caret && el.setSelectionRange) try { el.setSelectionRange(find.caret[0], find.caret[1]); } catch (e) { /* not a text field */ }
 }
-function render() { const find = focusKey(document.activeElement); renderPage(); window.dispatchEvent(new CustomEvent('call-render', { detail: { result: A.analyze(S.data), custom: S.custom } })); restoreFocus(find); }
+function render() { const find = focusKey(document.activeElement); renderPage(); ui.enhanceControls($('#legacy-workspace')); ui.enhanceTables($('#legacy-workspace')); window.dispatchEvent(new CustomEvent('call-render', { detail: { result: A.analyze(S.data), custom: S.custom } })); restoreFocus(find); }
 // Arrow keys, Home and End move between the company tabs and open the one they land on (the WAI-ARIA tabs pattern).
 function roving(e) {
   const opt = e.target.closest && e.target.closest('[role="radio"], [role="tab"]'), group = opt && opt.closest('[role="radiogroup"], [role="tablist"]');
@@ -248,6 +254,15 @@ function init() {
   window.addEventListener('hashchange', () => { const t = fromHash(); S.ticker = S.data[t] ? t : Object.keys(S.data)[0]; render(); if (S.data[t] && !$('#details').open) $('#details').showModal(); });
   $('.skip').addEventListener('click', e => { e.preventDefault(); firstHeading().focus(); });   // "#main" in the address would be read as a ticker
   document.addEventListener('keydown', roving);
+  let renderedWidth = innerWidth, resizeFrame;
+  window.addEventListener('resize', () => {
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => {
+      if (renderedWidth === innerWidth) return;
+      renderedWidth = innerWidth;
+      render();
+    });
+  });
   render();
 }
 window.CallDelta = { state: S, validate, pearson };
