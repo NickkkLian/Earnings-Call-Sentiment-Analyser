@@ -155,16 +155,16 @@ header button { flex-shrink: 0; }
   #calls table.record-table th.num button { width: auto; }
 }
 
-/* Review 2: compact records and balanced research sections. */
+/* Compact records and balanced research sections. */
 
 @media(max-width:700px) {
   #calls table.record-table { background: transparent; }
-  #calls table.record-table tbody { padding: 0; justify-items: start; gap: 12px; }
+  #calls table.record-table tbody { padding: 0; justify-items: stretch; gap: 12px; }
   #calls table.record-table thead tr { padding: 8px 0 12px; }
   #calls table.record-table tbody > tr {
-    display: grid; grid-template-columns: repeat(2,minmax(0,max-content));
+    display: grid; grid-template-columns: repeat(3,minmax(0,1fr));
     gap: 12px 20px; align-items: start; justify-content: start;
-    width: fit-content; max-width: 100%; padding: 12px; background: var(--soft);
+    width: 100%; max-width: 100%; padding: 12px; background: var(--soft);
   }
   #calls table.record-table tbody td,#calls table.record-table tbody td.num {
     display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
@@ -204,9 +204,19 @@ header button { flex-shrink: 0; }
 @media(max-width:1100px) { #legacy-workspace .topics-card .topics { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:700px) {
   #legacy-workspace .analysis-columns,#legacy-workspace .topics-card .topics { grid-template-columns: minmax(0,1fr); gap: 20px; }
-  #calls table.record-table tbody > tr { grid-template-columns: repeat(3,minmax(0,max-content)); gap: 12px 16px; }
+  #calls table.record-table tbody > tr { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
   #table-view table.compact-table th,#table-view table.compact-table tbody td { padding: 10px 4px; }
 }
 
 #table-view table.compact-table thead th { display: table-cell; position: static; }
 #table-view table.compact-table td.num .cell-value { text-align: right; font-family: var(--mono); }
+
+/* Round 3: every phone record fills its column; shared static headings are redundant. */
+@media(max-width:700px) {
+  #calls table.record-table thead { display: none; }
+  #calls table.record-table tbody > tr { box-sizing: border-box; gap: 12px; justify-content: stretch; }
+  #calls table.record-table tbody td { align-items: stretch; }
+  #calls table.record-table .cell-value { width: 100%; overflow-wrap: anywhere; }
+  #calls table.record-table tbody td:nth-child(3n) { align-items: flex-end; text-align: right; }
+  #calls .tone-trace { max-width: 100%; margin-left: auto; }
+}
