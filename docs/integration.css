@@ -193,10 +193,10 @@ header button { flex-shrink: 0; }
 #legacy-workspace .analysis-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: calc(28 * var(--suite-px, 1px)); }
 #interval-value { display: block; font-size: calc(14 * var(--suite-px, 1px)); margin-top: calc(4 * var(--suite-px, 1px)); }
 #legacy-workspace .selected-evidence { padding: calc(16 * var(--suite-px, 1px)); background: var(--surface); border-radius: calc(12 * var(--suite-px, 1px)); }
-#legacy-workspace .selected-evidence h2 { font-size: calc(20 * var(--suite-px, 1px)); }
+#legacy-workspace .selected-evidence h1 { font-size: calc(20 * var(--suite-px, 1px)); }
 #legacy-workspace .selected-evidence p { margin-top: calc(6 * var(--suite-px, 1px)); font-size: calc(14 * var(--suite-px, 1px)); }
-#legacy-workspace .selected-trace { max-width: calc(540 * var(--suite-px, 1px)); }
-#legacy-workspace .selected-trace svg { display: block; width: 100%; height: auto; }
+#legacy-workspace .selected-trace { max-width: 540px; }
+#legacy-workspace .selected-trace svg { display: block; width: 100%; height: auto; max-height: 320px; }
 #legacy-workspace .selected-trace svg text { fill: var(--text-2); font-family: var(--font-mono); font-size: calc(12 * var(--suite-px, 1px)); }
 #legacy-workspace .selected-trace .grid { stroke: var(--viz-grid); }
 #legacy-workspace .selected-trace .zero { stroke: var(--border-strong); stroke-dasharray: 3 3; }
@@ -205,6 +205,8 @@ header button { flex-shrink: 0; }
 #legacy-workspace .selected-trace .gapfill { fill: var(--viz-1); opacity: .12; }
 #legacy-workspace .selected-trace .dot-mgmt { fill: var(--viz-1); }
 #legacy-workspace .selected-trace .dot-qa { fill: var(--viz-2); }
+#legacy-workspace .selected-trace .selected-quarter { fill: var(--accent); opacity: .20; }
+#legacy-workspace .selected-trace svg .selected-label { fill: var(--accent); font-weight: 700; }
 #legacy-workspace .trace-legend { display: flex; gap: calc(16 * var(--suite-px, 1px)); flex-wrap: wrap; }
 #legacy-workspace .trace-legend span::before { content: ''; display: inline-block; width: calc(14 * var(--suite-px, 1px)); height: calc(3 * var(--suite-px, 1px)); vertical-align: middle; margin-right: calc(6 * var(--suite-px, 1px)); background: var(--viz-1); }
 #legacy-workspace .trace-legend span:last-child::before { background: var(--viz-2); }
@@ -213,7 +215,8 @@ header button { flex-shrink: 0; }
   #legacy-workspace .selected-evidence > :not(.selected-trace) { grid-column: 1; }
   #legacy-workspace .selected-trace { grid-column: 2; grid-row: 1 / span 5; }
 }
-.open-call { min-height: calc(36 * var(--suite-px, 1px)); white-space: nowrap; }
+.open-call { display: inline; height: auto; padding: 0; background: transparent; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: calc(4 * var(--suite-px, 1px)); white-space: nowrap; }
+#load { box-shadow: inset 0 0 0 1px var(--line); }
 #legacy-workspace .analysis-columns section { min-width: 0; }
 #legacy-workspace .analysis-columns h3 { margin: 0 0 calc(12 * var(--suite-px, 1px)); font-size: calc(18 * var(--suite-px, 1px)); }
 #legacy-workspace .analysis-columns p { max-width: none; margin-top: calc(12 * var(--suite-px, 1px)); }
