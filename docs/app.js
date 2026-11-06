@@ -37,7 +37,7 @@ function validate(obj) { // same rules the old React dashboard applied, plus num
 // an error toast that carries its fix as a button (`action`: { label, run }) stays until it is dismissed
 function toast(msg, kind, action) { const box = $('#toasts'); const el = h('div', { class: 'toast enter', role: kind === 'error' ? 'alert' : 'status' }, h('span', {}, msg), action ? h('button', { class: 'btn btn-sm', onclick: () => { if (action.focus) action.focus().focus(); el.remove(); action.run(); } }, action.label) : null, h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': 'Dismiss', onclick: () => el.remove() }, '×')); box.append(el); requestAnimationFrame(() => el.classList.remove('enter')); if (!action) setTimeout(() => el.remove(), kind === 'error' ? 8000 : 4000); }
 
-const S = { data: REAL, custom: false, ticker: Object.keys(REAL)[0], view: {} };
+const S = { data: REAL, custom: false, ticker: Object.keys(REAL)[0], quarter: null, view: {} };
 const esc = s => String(s ?? '');
 const fromHash = () => { try { return decodeURIComponent(location.hash.slice(1)); } catch (e) { return location.hash.slice(1); } };   // a stray % must not stop the page
 
@@ -47,7 +47,7 @@ function chartWidth() {
   const column = innerWidth > 1100 ? (inner - 16) / 2 : inner;
   return Math.max(288, Math.floor(column - (innerWidth <= 700 ? 32 : 48)));
 }
-function trajectory(quarters) {
+function trajectory(quarters, selected = -1) {
   const W = chartWidth(), H = 260, L = 48, R = 40, T = 14, B = 34, n = quarters.length;
   const labelStep = Math.max(1, Math.ceil((n - 1) / Math.max(1, Math.floor((W - L - R) / 80))));
   const x = i => L + (n > 1 ? i / (n - 1) : 0.5) * (W - L - R), y = v => T + (1 - (v + 0.5) / 1.5) * (H - T - B);
@@ -57,7 +57,7 @@ function trajectory(quarters) {
     [-0.5, 0, 0.5, 1].map(v => [h('line', { class: v === 0 ? 'zero' : 'grid', x1: L, x2: W - R, y1: y(v), y2: y(v) }), h('text', { x: L - 6, y: y(v) + 3, 'text-anchor': 'end' }, v.toFixed(1))]),
     h('polygon', { class: 'gapfill', points: gap }),
     h('path', { class: 'mgmt', d: pathOf('mgmt') }), h('path', { class: 'qa', d: pathOf('qa') }),
-    quarters.map((q, i) => [h('circle', { class: 'dot-mgmt', cx: x(i), cy: y(q.mgmt), r: 3.5 }, h('title', {}, `${q.label} management ${tone(q.mgmt)}`)), h('circle', { class: 'dot-qa', cx: x(i), cy: y(q.qa), r: 3.5 }, h('title', {}, `${q.label} analysts ${tone(q.qa)}`)), i === n - 1 || i % labelStep === 0 && x(n - 1) - x(i) >= 70 ? h('text', { x: x(i), y: H - 12, 'text-anchor': 'middle' }, q.label) : null]));
+    quarters.map((q, i) => [i === selected ? h('line', { x1: x(i), x2: x(i), y1: T, y2: H-B, stroke: 'currentColor', 'stroke-dasharray': '3 3', opacity: '.5' }) : null, h('circle', { class: 'dot-mgmt', cx: x(i), cy: y(q.mgmt), r: i === selected ? 6 : 3.5 }, h('title', {}, `${q.label} management ${tone(q.mgmt)}`)), h('circle', { class: 'dot-qa', cx: x(i), cy: y(q.qa), r: i === selected ? 6 : 3.5 }, h('title', {}, `${q.label} analysts ${tone(q.qa)}`)), i === n - 1 || i % labelStep === 0 && x(n - 1) - x(i) >= 70 ? h('text', { x: x(i), y: H - 12, 'text-anchor': 'middle' }, q.label) : null]));
 }
 function scatter(quarters) {
   const W = chartWidth(), H = 300, L = 58, R = 22, T = 40, B = 64;
@@ -198,19 +198,19 @@ function roving(e) {
 function renderPage() {
   const main = $('#main'); main.innerHTML = '';
   const result = A.analyze(S.data), data = result.data, tickers = Object.keys(data); if (!data[S.ticker]) S.ticker = tickers[0];
-  const c = data[S.ticker], qs = c.quarters, cur = qs[qs.length - 1], prev = qs[qs.length - 2] || cur;
+  const c = data[S.ticker], qs = c.quarters, latest = qs[qs.length - 1], selectedIndex = Number.isInteger(S.quarter) && qs[S.quarter] ? S.quarter : qs.length - 1, cur = qs[selectedIndex], prev = qs[Math.max(0, selectedIndex - 1)];
   const calls = tickers.reduce((a, t) => a + data[t].quarters.length, 0);
   $('#pill-short').textContent = S.custom ? 'Your file' : 'Real calls';
   $('#pill-long').textContent = S.custom ? ' · loaded in this tab' : ` · ${new Set(META.calls.map(c => c.ticker)).size} companies · ${META.calls.length} calls · scored by ${modelName()}, an AI model · ${META.run_date}`;
   $('#reset').hidden = !S.custom;
   // the address always names the company on screen, so a reload or a shared link opens the same one
   if (fromHash() !== S.ticker) history.replaceState(null, '', '#' + encodeURIComponent(S.ticker));
-  main.append(analysisCard(result));
-  main.append(h('div', { class: 'ticker-tabs', role: 'tablist', 'aria-label': 'Companies' }, tickers.map(t => h('button', { role: 'tab', id: 'tab-' + t, 'aria-controls': 'ticker-panel', 'aria-selected': t === S.ticker ? 'true' : 'false', onclick: () => { if (t === S.ticker) return; S.ticker = t; history.pushState(null, '', '#' + encodeURIComponent(t)); render(); } }, t)), h('span', { class: 'meta' }, `${qs.length} ${qs.length === 1 ? 'quarter' : 'quarters'} · ${tickers.length} tickers · ${calls} calls · `, recSummary(data, tickers, calls))));
-  if (!S.custom) main.append(provenance());
+  main.append(h('div', { class: 'ticker-tabs', role: 'tablist', 'aria-label': 'Companies' }, tickers.map(t => h('button', { role: 'tab', id: 'tab-' + t, 'aria-controls': 'ticker-panel', 'aria-selected': t === S.ticker ? 'true' : 'false', onclick: () => { if (t === S.ticker) return; S.ticker = t; S.quarter = null; history.pushState(null, '', '#' + encodeURIComponent(t)); render(); } }, t)), h('span', { class: 'meta' }, `${qs.length} ${qs.length === 1 ? 'quarter' : 'quarters'} · ${tickers.length} tickers · ${calls} calls · `, recSummary(data, tickers, calls))));
   const panel = h('div', { id: 'ticker-panel', role: 'tabpanel', 'aria-labelledby': 'tab-' + S.ticker }); main.append(panel);
+  const source = (() => { try { const url = new URL(cur.source_page); return ['https:', 'http:'].includes(url.protocol) ? url.href : null; } catch { return null; } })();
+  panel.append(h('section', { class: 'selected-evidence', 'aria-label': 'Selected call evidence' }, h('h2', {}, `${c.company} · ${cur.label}`), h('p', {}, `Selected call${cur.date ? ' · ' + cur.date : ''} · Management ${tone(cur.mgmt)} · Analysts ${tone(cur.qa)} · `, source ? h('a', { href: source, rel: 'noopener' }, 'Source transcript') : 'Source not supplied'), h('p', {}, S.custom ? 'Scores from your loaded file.' : `Scored by ${modelName()}, an AI model, on ${META.run_date}.`), h('div', { class: 'selected-trace' }, trajectory(qs, selectedIndex)), h('p', { class: 'trace-legend' }, h('span', {}, 'Management'), h('span', {}, 'Analyst Q&A')), h('p', { class: 'hint' }, `The dashed line marks the selected call. Topics and extracts below are from the latest call, ${latest.label}${selectedIndex !== qs.length - 1 ? ', not the selected historical call' : ''}.`)));
   const gap = cur.mgmt - cur.qa, gapPrev = prev.mgmt - prev.qa, rec = reconcile(c, cur);
-  panel.append(h('div', { class: 'company' }, h('div', {}, h('h1', {}, c.company), h('div', { class: 'sub' }, `${S.ticker} · ${c.sector} · latest call ${cur.date || cur.label}`)),
+  panel.append(h('div', { class: 'company' }, h('div', {}, h('h1', {}, c.company), h('div', { class: 'sub' }, `${S.ticker} · ${c.sector} · selected call ${cur.date || cur.label}`)),
     h('div', { class: 'kpis' }, [['EPS surprise', cur.eps_surprise], ['5-day return', cur.ret_5d], [result.summary ? '5-day fitted residual *' : 'File residual *', cur.residual_5d]].map(([l, v]) => h('div', { class: 'kpi' }, h('div', { class: 'lbl' }, l), h('div', { class: 'val ' + cls(v * 10) }, pct(v))))),
     rec.checkable
       ? h('div', { class: 'recon', role: 'note' }, `Return check: sector contribution ${pct(rec.sectorPart)}, fitted baseline ${pct(rec.alpha)}, earnings contribution ${pct(rec.surprisePart)} and remaining move ${pct(cur.residual_5d)}. `,
@@ -221,7 +221,7 @@ function renderPage() {
     companyNote(c) ? h('p', { class: 'company-note', role: 'note' }, companyNote(c)) : null));
   // colour may repeat what a sign already says, never stand alone for good or bad: the strip's
   // unsigned figures and these deltas carry no colour classes
-  const delta = v => qs.length < 2 ? null : h('small', {}, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);   // one quarter: nothing to compare with
+  const delta = v => selectedIndex < 1 ? null : h('small', {}, `${v > 0 ? '▲' : v < 0 ? '▼' : '·'} ${tone(v)} vs prior`);   // one quarter: nothing to compare with
   panel.append(h('div', { class: 'strip', role: 'group', 'aria-label': 'Current quarter signals' },
     h('div', {}, h('div', { class: 'lbl' }, 'Management tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.mgmt) }, tone(cur.mgmt)), delta(cur.mgmt - prev.mgmt))),
     h('div', {}, h('div', { class: 'lbl' }, 'Analyst Q&A tone'), h('div', { class: 'val' }, h('b', { class: cls(cur.qa) }, tone(cur.qa)), delta(cur.qa - prev.qa))),
@@ -231,20 +231,22 @@ function renderPage() {
   const maxW = Math.max(0.001, ...c.topics.map(t => t.weight));
   panel.append(h('div', { class: 'panels' },
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Multi-quarter sentiment trajectory'), h('p', {}, `Management prepared remarks vs analyst Q&A · ${qs.length} ${qs.length === 1 ? 'quarter' : 'quarters'} · shaded band = framing gap`)), trajectory(qs), h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'background:var(--viz-1)' }), 'Management'), h('span', {}, h('i', { style: 'background:var(--viz-2)' }), 'Analyst Q&A'), h('span', {}, h('i', { style: 'background:var(--viz-1);opacity:.25;height:calc(8 * var(--suite-px, 1px))' }), 'Framing gap'))),
-    h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Topic emphasis'), h('p', {}, `${cur.label} · the six largest themes the model named; each % is a share of the half it came from (prepared remarks or Q&A), so the list does not add up to 100%`)), h('div', { class: 'topics' }, c.topics.length ? c.topics.map(t => { const g = t.mgmt - t.qa, one = t.mgmt_missing === true || t.qa_missing === true; return h('div', { class: 'topic' }, h('div', { class: 'head' }, h('b', {}, t.name), h('span', { class: 'mono muted' }, topicShare(t))), h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, t.weight / maxW * 100)}%` })), h('div', { class: 'tones' }, t.mgmt_missing === true ? h('span', { class: 'muted' }, 'Management: not discussed') : h('span', { class: cls(t.mgmt) }, 'Management ' + tone(t.mgmt)), t.qa_missing === true ? h('span', { class: 'muted' }, 'Analysts: not discussed') : h('span', { class: cls(t.qa) }, 'Analysts ' + tone(t.qa)), !one && Math.abs(g) > 0.25 ? h('span', { class: 'tag tag-warning' }, 'gap ' + tone(g)) : null)); }) : h('p', { class: 'muted' }, 'No topics in this file.')), c.topics.length ? h('p', { class: 'hint', style: 'margin-top:calc(12 * var(--suite-px, 1px))' }, topicsNote(c.topics)) : null)));
+    h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Topic emphasis'), h('p', {}, `${latest.label} · latest call; the six largest themes the model named; each % is a share of the half it came from (prepared remarks or Q&A), so the list does not add up to 100%`)), h('div', { class: 'topics' }, c.topics.length ? c.topics.map(t => { const g = t.mgmt - t.qa, one = t.mgmt_missing === true || t.qa_missing === true; return h('div', { class: 'topic' }, h('div', { class: 'head' }, h('b', {}, t.name), h('span', { class: 'mono muted' }, topicShare(t))), h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, t.weight / maxW * 100)}%` })), h('div', { class: 'tones' }, t.mgmt_missing === true ? h('span', { class: 'muted' }, 'Management: not discussed') : h('span', { class: cls(t.mgmt) }, 'Management ' + tone(t.mgmt)), t.qa_missing === true ? h('span', { class: 'muted' }, 'Analysts: not discussed') : h('span', { class: cls(t.qa) }, 'Analysts ' + tone(t.qa)), !one && Math.abs(g) > 0.25 ? h('span', { class: 'tag tag-warning' }, 'gap ' + tone(g)) : null)); }) : h('p', { class: 'muted' }, 'No topics in this file.')), c.topics.length ? h('p', { class: 'hint', style: 'margin-top:calc(12 * var(--suite-px, 1px))' }, topicsNote(c.topics)) : null)));
   const r = pearson(qs.map(q => q.mgmt - q.qa), qs.map(q => q.residual_5d)), swamped = qs.filter(q => controlDominates(c, q)).length;
   panel.append(h('div', { class: 'panels-2' },
     h('div', { class: 'chart' }, h('div', { class: 'ch-head' }, h('h2', {}, 'Sentiment gap vs residual return'), h('p', {}, `5-day post-call return after controlling for sector and EPS surprise · one point per call · Pearson r = ${r === null ? 'n/a' : r.toFixed(2)} over n = ${qs.length} calls${qs.length < 30 ? ` — far too few points for r to show a relationship; it is here to show the method, not a finding` : ' (not a trading signal)'}`)), scatter(qs), h('p', { class: 'hint', style: 'margin-top:calc(8 * var(--suite-px, 1px))' }, swamped ? `In ${swamped} of ${qs.length} ${qs.length === 1 ? 'call' : 'calls'} here the EPS-surprise control is larger than the return after the sector move, so the vertical axis mostly restates the EPS surprise with its sign flipped; a residual beyond ±100% is not a return.` : 'Quadrant of interest: wide gap and negative residual — management rosy, market unconvinced.')),
-    h('div', { class: 'card' }, h('h2', {}, 'Notable extracts'), h('p', { class: 'hint', style: 'margin-bottom:calc(12 * var(--suite-px, 1px))' }, S.custom ? `${cur.label} · passages the model tagged` : `${cur.label} · passages the model tagged in the prepared remarks, word for word, 25 words at most`), c.extracts.length ? c.extracts.map(e => h('div', { class: 'extract' }, h('div', {}, h('span', { class: 'cat' }, e.tag)), h('div', {}, h('q', {}, esc(e.text)), h('div', { class: 'who' }, '— ' + esc(e.speaker))))) : h('p', { class: 'muted' }, 'No extracts in this file.'))));
+    h('div', { class: 'card' }, h('h2', {}, 'Notable extracts'), h('p', { class: 'hint', style: 'margin-bottom:calc(12 * var(--suite-px, 1px))' }, S.custom ? `${latest.label} · latest call passages the model tagged` : `${latest.label} · latest call passages the model tagged in the prepared remarks, word for word, 25 words at most`), c.extracts.length ? c.extracts.map(e => h('div', { class: 'extract' }, h('div', {}, h('span', { class: 'cat' }, e.tag)), h('div', {}, h('q', {}, esc(e.text)), h('div', { class: 'who' }, '— ' + esc(e.speaker))))) : h('p', { class: 'muted' }, 'No extracts in this file.'))));
   const columns=panel.querySelector('.panels'), lower=panel.querySelector('.panels-2');
   if(columns&&lower){
     const [trajectoryCard,topicsCard]=[...columns.children],[scatterCard,extractsCard]=[...lower.children];
-    columns.className='research-columns';columns.replaceChildren(trajectoryCard,scatterCard);
+    columns.className='research-columns';columns.replaceChildren(scatterCard);
     topicsCard.classList.add('topics-card');extractsCard.classList.add('extracts-card');
     const quotes=[...extractsCard.querySelectorAll('.extract')];
     if(quotes.length)extractsCard.append(h('div',{class:'extract-grid'},quotes));
     lower.replaceWith(topicsCard,extractsCard);
   }
+  if (!S.custom) main.append(provenance());
+  main.append(h('details', { class: 'pooled-summary' }, h('summary', {}, 'Pooled finding and prediction errors'), analysisCard(result)));
   main.append(h('div', { class: 'card' }, h('h2', {}, 'Methodology'), h('div', { class: 'method' }, h('div', {}, h('p', {}, 'Each transcript is split into prepared remarks and analyst Q&A and scored separately by the model against a fixed JSON schema, written into the prompt and validated, with one repair round (Anthropic, OpenAI, Gemini or an OpenAI-compatible server; native structured output is an option for Anthropic and OpenAI). Tone, hedging density, guidance confidence, topics and tagged passages come back as structured fields, so quarters are comparable.'), h('p', {}, '* The remaining move is the measured 5-day return after removing the sector contribution, a fitted baseline and the estimated earnings contribution. For each call, those estimates use the other calls. The prediction comparison uses the same held-out approach to compare earnings plus tone, earnings only and the training mean. Later calls can be included in training, so this is not a test of future forecasts. Missing inputs withhold the fitted conclusion. A large earnings contribution can dominate this leftover; it is never a return anyone earned. The page warns separately about leftovers beyond ±100%.'), h('p', {}, 'Tags: tone is scored from −1 to +1. The headline sentiment gap (management tone − analyst Q&A tone) is tagged wide above 0.2 and normal otherwise. A topic is tagged gap when its management and Q&A tones differ by more than 0.25 either way; a topic found in only one section gets no gap tag. These cut-offs only choose the tags; no score or chart uses them.'), h('p', {}, 'The data on this page is one run of this pipeline on twelve real calls, the four most recent of each company, scored from the transcripts the companies publish themselves (', h('code', {}, 'python -m src.ir_run'), '). Analyst questions are scored as part of the Q&A section but never quoted, and no analyst is named. Load a JSON file produced by ', h('code', {}, 'python -m src.export_dashboard signals.csv'), ' to see your own run; the loader validates the shape and rejects malformed files with a specific message.')),
     h('div', {}, h('pre', { tabindex: '0', role: 'region', 'aria-label': 'Model output schema' }, `{
   "section": "prepared" | "qa",
@@ -267,7 +269,7 @@ function loadFile(file) { if (!file) return; const rd = new FileReader(); rd.onl
   let parsed; try { parsed = JSON.parse(ev.target.result); } catch (e) { return toast(`${file.name} is not valid JSON. ${shape}`, 'error', again); }
   const err = validate(parsed); if (err) return toast(`${file.name} does not have the dashboard's shape: ${err}. ${shape}`, 'error', again);
   const before = { data: S.data, custom: S.custom, ticker: S.ticker };
-  Object.assign(S, { data: parsed, custom: true, ticker: Object.keys(parsed)[0] });
+  Object.assign(S, { data: parsed, custom: true, ticker: Object.keys(parsed)[0], quarter: null });
   try { render(); } catch (e) { Object.assign(S, before); render(); console.error(e); return toast(`${file.name} passed the checks but could not be drawn. ${shape}`, 'error', again); }
   toast(`Loaded ${Object.keys(parsed).length} tickers, ${Object.values(parsed).reduce((a, c) => a + c.quarters.length, 0)} calls from ${file.name}`); };
   rd.onerror = () => toast(`Could not read ${file.name}. Nothing was changed.`, 'error', { label: 'Choose another file', run: () => $('#file').click(), focus: () => $('#load') }); rd.readAsText(file); }
@@ -278,11 +280,11 @@ function init() {
   Appearance.bindToggle(tb);   // ◐ switches light/dark only (appearance.js)
   Appearance.bindSettings($('#nl-settings-button'));   // the gear: palette + light/dark
   $('#load').addEventListener('click', () => $('#file').click()); $('#file').addEventListener('change', e => { loadFile(e.target.files[0]); e.target.value = ''; });
-  $('#reset').addEventListener('click', () => { S.data = REAL; S.custom = false; S.ticker = Object.keys(REAL)[0]; render(); toast('Back to the real calls'); });
+  $('#reset').addEventListener('click', () => { S.data = REAL; S.custom = false; S.ticker = Object.keys(REAL)[0]; S.quarter = null; render(); toast('Back to the real calls'); });
   document.addEventListener('dragover', e => e.preventDefault()); document.addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
   const t = fromHash(); if (t && REAL[t]) { S.ticker = t; document.querySelector('#details').showModal(); }
   // any other address (the home link's "#", an old ticker) shows the first company, and render() writes its ticker back
-  window.addEventListener('hashchange', () => { const t = fromHash(); S.ticker = S.data[t] ? t : Object.keys(S.data)[0]; render(); if (S.data[t] && !$('#details').open) $('#details').showModal(); });
+  window.addEventListener('hashchange', () => { const t = fromHash(); S.ticker = S.data[t] ? t : Object.keys(S.data)[0]; S.quarter = null; render(); if (S.data[t] && !$('#details').open) $('#details').showModal(); });
   $('.skip').addEventListener('click', e => { e.preventDefault(); firstHeading().focus(); });   // "#main" in the address would be read as a ticker
   document.addEventListener('keydown', roving);
   let renderedWidth = innerWidth, resizeFrame;
@@ -296,6 +298,6 @@ function init() {
   });
   render();
 }
-window.CallDelta = { state: S, validate, pearson };
+window.CallDelta = { state: S, validate, pearson, openCall(ticker, index) { if (!S.data[ticker] || !S.data[ticker].quarters[index]) return false; S.ticker = ticker; S.quarter = index; render(); return true; } };
 init();
 })();

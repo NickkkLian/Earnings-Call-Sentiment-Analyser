@@ -56,10 +56,10 @@ test('real data produces finite reconciled residuals and a measured verdict', ()
   }
   assert.match(A.verdict(out.summary), /evidence|association/);
 });
-test('pooled verdict precedes tabs and states uncertainty limitations', () => {
+test('pooled verdict is collapsed after company evidence and states uncertainty limitations', () => {
   const app = fs.readFileSync(__dirname + '/app.js', 'utf8');
-  assert.ok(app.includes('main.append(analysisCard('));
-  assert.ok(app.indexOf('main.append(analysisCard(') < app.indexOf("main.append(h('div', { class: 'ticker-tabs'"));
+  assert.ok(app.includes("h('details', { class: 'pooled-summary' }"));
+  assert.ok(app.indexOf("h('details', { class: 'pooled-summary' }") > app.indexOf("main.append(h('div', { class: 'ticker-tabs'"));
   // Test what the summary renders, without requiring the jargon removed in review.
   const context = { A, h: (tag, attrs, ...children) => ({ tag, children: children.flat(Infinity) }) };
   vm.runInNewContext(app.slice(app.indexOf('function analysisCard('), app.indexOf('function companyNote(')) + '\nglobalThis.summaryCard = analysisCard;', context);

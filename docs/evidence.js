@@ -11,15 +11,22 @@ const signed = (value,places) => `${value < 0 ? '−' : '+'}${Math.abs(value).to
 function renderCalls() {
   const company=$('#company').value;
   $('#call-rows').closest('table').querySelectorAll('th').forEach(head => head.removeAttribute('aria-sort'));
-  $('#call-rows').innerHTML=Object.entries(sample.analysis.data).filter(([ticker]) => company==='all'||ticker===company).flatMap(([ticker,data]) => data.quarters.map(call => {
+  $('#call-rows').innerHTML=Object.entries(sample.analysis.data).filter(([ticker]) => company==='all'||ticker===company).flatMap(([ticker,data]) => data.quarters.map((call,index) => {
     const y = value => (24-(value+1)*10).toFixed(1);
     const trace = `<svg class="tone-trace" viewBox="0 0 72 28" role="img" aria-label="Management ${call.mgmt}, analysts ${call.qa}"><path d="M8 ${y(call.mgmt)}L64 ${y(call.qa)}"/><circle cx="8" cy="${y(call.mgmt)}" r="3"/><circle cx="64" cy="${y(call.qa)}" r="3"/></svg>`;
-    return `<tr tabindex="0" data-detail="${escapeText(ticker)} ${escapeText(call.label)}. Management minus analyst tone ${signed(call.mgmt-call.qa,2)}. Open Source for the company transcript."><td>${escapeText(ticker)}</td><td>${escapeText(call.label)}</td><td>${trace}</td><td class="num">${signed(call.mgmt,2)}</td><td class="num">${signed(call.qa,2)}</td><td class="num">${signed(call.ret_5d*100,1)}%</td><td>${safeSource(call.source_page)}</td></tr>`;
+    return `<tr tabindex="0" data-detail="${escapeText(ticker)} ${escapeText(call.label)}. Management minus analyst tone ${signed(call.mgmt-call.qa,2)}. Open Source for the company transcript."><td>${escapeText(ticker)}</td><td>${escapeText(call.label)}</td><td>${trace}</td><td class="num">${signed(call.mgmt,2)}</td><td class="num">${signed(call.qa,2)}</td><td class="num">${signed(call.ret_5d*100,1)}%</td><td>${safeSource(call.source_page)}</td><td><button type="button" class="open-call" data-ticker="${escapeText(ticker)}" data-quarter="${index}" aria-label="Company analysis for ${escapeText(ticker)} ${escapeText(call.label)}">Company analysis</button></td></tr>`;
   })).join('');
   ui.enhanceTables($('#calls'));
   ui.fade($('#call-rows'));
 }
 $('#company').addEventListener('change',renderCalls);
+$('#call-rows').addEventListener('click', event => {
+  const button = event.target.closest('.open-call');
+  if (!button || !window.CallDelta.openCall(button.dataset.ticker, Number(button.dataset.quarter))) return;
+  $('#calls').close();
+  $('#details').showModal();
+  $('#details').scrollTop = 0;
+});
 for (const id of ['inspect','sources-register']) $(`#${id}`).addEventListener('click',()=>$('#calls').showModal());
 $('#learn').addEventListener('click',()=>$('#method').showModal());
 
@@ -46,6 +53,7 @@ window.addEventListener('call-render', event => {
   renderCalls();
   $('#correlation-value').textContent = summary?.r === null || !summary ? 'n/a' : summary.r.toFixed(2);
   const interval = summary?.ci;
+  $('#interval-value').textContent = interval ? `Approx. 95% interval ${interval.map(value => signed(value,2)).join(' to ')}` : 'Approx. 95% interval unavailable';
   $('.interval-range').hidden = !interval;
   $('.interval-point').hidden = summary?.r === null || !summary;
   if (interval) {
