@@ -17,6 +17,8 @@
 8. [How to extend it](#8-how-to-extend-it)
 9. [Troubleshooting](#9-troubleshooting)
 10. [Honest caveats](#10-honest-caveats)
+11. [Checks and the evaluation set, in full](#11-checks-and-the-evaluation-set-in-full)
+12. [Continue with ChatGPT](#12-continue-with-chatgpt-your-chatgpt-plan-no-api-key)
 
 ---
 
@@ -509,3 +511,40 @@ upfront about:
 These aren't reasons not to do the project — they're the reasons it's
 *honest* about what it shows. Calling them out is itself a signal of
 research maturity.
+
+---
+
+## 11. Checks and the evaluation set in full
+
+The commands are in the README's Checks section. What each one covers:
+
+- `tests/` covers the transcript splitter (every operator phrasing the regex claims to recognise, the no-marker case, first match wins, an opening announcement of a later Q&A is not the hand-off), the quote filter for published data (prepared remarks only, 25 words, word for word, no elisions), the residual-return arithmetic and trading-day windows on a fixed synthetic series, and the dashboard export (topic merging across sections, Q&A-only topics, NaN rows dropped rather than zeroed). No network access.
+- `src/eval.py` scores the extraction step on `eval/passages.json`: 30 synthetic passages (six per tag) and 10 synthetic guidance snippets. It runs through the project's own analyzer — same prompt, same schema — and records the model name and date in `eval/llm-cache.json`. The cache now holds the 2026-09-25 run with `claude-sonnet-5`, the default at the time (the default is now `claude-sonnet-5-5`, not yet scored on this set): **30/30 passages and 10/10 guidance snippets** (six right out of six for each of confident, hedging, evasion, admission and contradiction). The earlier 2026-09-22 run with `claude-haiku-4-5-20251001` had the same score; its cache is in the git history. Without the cache it reports **NOT RUN** (exit code 2) rather than a made-up number. `--break` is the negative control: a cached tag outside the schema must be refused. This is a small evaluation set, not a formal evaluation pipeline — and `eval/llm-cache.json` is the whole of what that run left behind: it records the model name and date, nothing here shows a request went over the network, and a hand-written cache would be indistinguishable from it.
+- `docs/check-web.mjs` asserts the dashboard loads no external scripts, that the demo and the real data pass the loader's own validation, that every real transcript source is the company's own investor-relations site and every real quote is at most 25 words, that the page opens on the real data, that mutated files are rejected with specific messages, and that the correlation helper is right.
+- `docs/analysis.test.cjs` checks fitted coefficients against exact synthetic arithmetic, exclusion of the held-out outcome, prediction baselines, interval endpoints, full refits for delete-one sensitivity, missing/degenerate inputs and the impossible-residual warning. The historical Python pipeline and scored files are unchanged; analysis consumes their raw EPS, sector returns and tone fields.
+
+CI runs all of the above on every push (Python 3.10 and 3.13; the eval score only once the cache exists).
+
+---
+
+## 12. Continue with ChatGPT (your ChatGPT plan, no API key)
+
+**Status: not yet tried with a real sign-in.** The flow is built from OpenAI's documentation and tested against a local mock of it. Nobody has signed in to the live service with this tool, so everything below describes what the documentation says should happen, not something that has been seen to work.
+
+This provider is meant to run the model step on a ChatGPT Plus or Pro plan instead of an API key. It follows OpenAI's official **Sign in with ChatGPT** flow for open-source, locally hosted apps ([OpenAI's documentation](https://developers.openai.com/siwc/token-sharing-open-source)); no unofficial endpoint and no scraped session is involved.
+
+```sh
+python -m src.chatgpt_auth login        # opens your browser: sign in to ChatGPT and allow the app to use your plan
+python -m src.chatgpt_auth models       # the model ids your plan can use
+python -m src.cli --tickers NWSC --quarters 2025Q2 --provider chatgpt --model a-model-id-from-that-list
+python -m src.chatgpt_auth status       # who is signed in and whether plan usage is on (never prints a token)
+python -m src.chatgpt_auth logout       # revokes the session at OpenAI, then clears the local tokens
+```
+
+**What it needs** (per OpenAI's documentation). An eligible ChatGPT Plus or Pro plan. Other accounts can sign in, but OpenAI answers their requests with `subscription_sharing_user_not_eligible`; that error is shown as it came, with the other providers named. Nothing switches to another provider or to an API key on its own. On Plus, the five-hour usage limit is shared with every other app that uses your plan; usage and per-app limits are at [chatgpt.com/settings/usage](https://chatgpt.com/settings/usage).
+
+**Preview limits** ([OpenAI's list](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)). Responses API only; every request is sent with `store: false` and `stream: true`; fields such as `max_output_tokens` and `temperature` are not accepted, so this provider sends neither (the 16,000-token output allowance above does not apply to it).
+
+**How it is built.** The first `login` registers "CallDelta" as an agent on your ChatGPT account (`client_id=dynamic_agent_client`, a browser callback on `http://127.0.0.1:1455/auth/callback` or another free port, PKCE, no client secret); later sign-ins reuse the client id OpenAI issued. The ID token is checked against OpenAI's published keys (RS256 signature, issuer, audience, expiry, nonce), and plan usage counts as on only when OpenAI grants `chatgpt.tokens.use.direct`. The signature check uses the standard library, because `src/chatgpt_auth.py` and `src/llm.py` are written without third-party packages (the rest of the project is not: `requirements.txt` lists nine); OpenAI's guide suggests a maintained JWT library where one can be used. Tokens are stored in `~/.config/calldelta/chatgpt/` (or `CHATGPT_AUTH_DIR`), one file per account, written atomically with mode 0600; never in this repository, never printed or logged. The access token is refreshed about five minutes before it expires, and the rotating refresh token is replaced at the same time.
+
+`--structured native` stays limited to Anthropic and OpenAI API keys; with `chatgpt` the default `json` mode is used.

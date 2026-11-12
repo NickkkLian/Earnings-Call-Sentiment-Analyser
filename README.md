@@ -1,40 +1,23 @@
 # CallDelta
 
-**Call tone vs. analyst pushback — not a trading signal.**
+**How rosy management sounds vs. how sceptical analysts are, scored separately for every earnings call.**
 
-**No reliable evidence that analyst pushback explains the post-call move after EPS.** Across the twelve scored calls, gap versus held-out EPS residual has **r = 0.03, approximate 95% interval −0.56 to +0.59**. Leave-one-out prediction RMSE: **EPS + gap 11.59 pp; EPS only 10.77 pp; training mean 8.75 pp** (lower is better). Removing one call and refitting gives r from **−0.10 to +0.31**. Reproduce these figures offline: `node docs/report-analysis.cjs`.
+An earnings call has two halves: what management chose to say, and what analysts made them answer. CallDelta scores each half separately with a fixed extraction schema, tags notable passages (*confident, hedging, evasion, admission, contradiction*), tracks the *gap* between the halves across quarters, and sets that gap next to the price move after the call.
 
-The interval is a Fisher approximation assuming independent calls. Repeated companies and shared training folds break that assumption; its coverage is not calibrated. This is an exploratory check on three companies, not a chronological backtest or a finding.
+**[Open the dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/)**: twelve real calls from Microsoft, Alphabet and Meta, scored from the transcripts each company publishes on its own investor-relations site. A static page: no server, no key.
 
-![CallDelta](.github/header.png)
+![CallDelta dashboard: the twelve calls pooled, with the correlation and the held-out prediction errors](docs/screenshot-dashboard.png)
 
-An earnings call has two halves: what management chose to say, and what analysts made them answer. CallDelta scores each half separately with a fixed extraction schema, tracks the *gap* between them across quarters, and sets that gap next to the price move after the call.
-
-**What it is.** A small, tested pipeline (transcript → the two halves → model scores validated against one schema → a static page) and **one real run of it: twelve calls**, the four most recent of Microsoft (FY26 Q1–Q4), Alphabet and Meta (Q3 2025–Q2 2026), scored by `claude-sonnet-5` on 2026-09-25 from the transcripts each company publishes on its own investor-relations site.
-
-**What it is not.** Not a trading signal and not a finding. Twelve calls cannot show whether tone predicts returns. Three limits show up in the real run, and the page states each one where it applies:
-
-- **The residual is a model leftover, not an earned return.** The analysis page replaces the historical hand-picked 1.5 × EPS control with an intercept and EPS coefficient fitted on all the other calls. It re-derives every displayed residual and keeps warnings when the EPS control dominates or a residual passes ±100%. The historical pipeline output remains intact as input; its residual column is superseded in the analysis view. See [Honest caveats](#honest-caveats).
-- **No topic was matched across the two halves.** Topics are matched by name, and on the latest call of each of the three companies none matched (18 of 18 topics belong to one half), so the topic-level gap has nothing to show on this data.
-- **One run of one model**, not checked against human labels.
-
-[![Check](https://img.shields.io/github/actions/workflow/status/NickkkLian/Earnings-Call-Sentiment-Analyser/check.yml?branch=main&label=check&style=flat-square&labelColor=2f5859)](https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser/actions/workflows/check.yml)
-
-![CallDelta evidence view with the fitted correlation interval and three held-out prediction errors](docs/screenshot-dashboard.png)
-
-The page opens on the pooled evidence from all twelve calls. **Inspect the 12 calls** opens the source register. **Company analysis** opens the full company view, including tone trajectories, topic shares, extracts, residual checks and the JSON loader. Company links such as `#MSFT` still open that company's analysis.
+Choose Claude, OpenAI, Gemini or an OpenAI-compatible server as the model; every reply is validated into the same schema. What the twelve calls show, and why twelve cannot show whether tone predicts returns: [What twelve calls show](#what-twelve-calls-show).
 
 ## Try it
 
 ```bash
 git clone https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser && cd Earnings-Call-Sentiment-Analyser
 python3 -m http.server --directory docs 8000     # then open http://localhost:8000 (no install, no key)
-node docs/check-web.mjs                          # the page's own checks; prints how many calls carry the residual warning
-node --test docs/analysis.test.cjs                # fitted control, holdout, uncertainty and failure cases
-node docs/report-analysis.cjs                     # reproduce the first-screen figures offline
 ```
 
-**In the browser** — open the [dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/) (static, no server) or serve `docs/` from a clone as above. It opens on the twelve real calls above, with a link to each call's transcript page; **Load JSON** (or drag a file onto the page) replaces them with your own pipeline output, validated for shape first; **Sample JSON** (under the schema in the Methodology section) downloads a **synthetic** example file (fictional companies, invented numbers) so you can see the schema.
+**In the browser** — open the [dashboard](https://nickkklian.github.io/Earnings-Call-Sentiment-Analyser/) (static, no server) or serve `docs/` from a clone as above. It opens on the pooled evidence from the twelve real calls, with a link to each call's transcript page. **Inspect the 12 calls** opens the source register. **Company analysis** opens the full company view, including tone trajectories, topic shares, extracts, residual checks and the JSON loader; company links such as `#MSFT` open that company's analysis. **Load JSON** (or drag a file onto the page) replaces the calls with your own pipeline output, validated for shape first; **Sample JSON** (under the schema in the Methodology section) downloads a **synthetic** example file (fictional companies, invented numbers) so you can see the schema.
 
 **What the real data contains.** Scores for the prepared remarks and for the analyst Q&A, topics, EPS surprise and the 5-day returns (EPS estimates and prices from Yahoo Finance via yfinance). Quotes come only from the prepared remarks of each company's latest call: at most 25 words each, checked word for word against the transcript, a passage with an elision or a mid-sentence fragment dropped. Analyst questions are scored but never quoted, and no analyst is named. Two companies carry a caveat on the page, taken from what they said on the calls: Alphabet's EPS in Q3 2025, Q1 2026 and Q2 2026 includes unrealized gains on equity securities, and Meta's includes a one-time tax charge (Q3 2025) and a tax benefit (Q1 2026). Fitting the coefficient does not repair those EPS inputs. The page marks control dominance using the fitted coefficients.
 
@@ -68,6 +51,20 @@ Replace the fictional tickers with real ones FMP has transcripts for (most US-li
 4. **Out-of-sample EPS control.** `docs/analysis.js` pools the calls and fits OLS: sector-adjusted move = α + γ × EPS surprise. For each displayed residual it excludes that call, fits α and γ on the rest, then subtracts the held-out prediction. The fitted γ ranges from 0.0048 to 0.1030 across these folds; no 1.5 constant enters the new analysis. Gap is management minus Q&A tone. The separate holdout comparison predicts the sector-adjusted move using EPS + gap, EPS only, or the training mean; each model excludes the held-out call. The delete-one sensitivity check removes a call and repeats the entire fitting process. Missing sector data or a singular EPS fit withholds the verdict and explicitly labels the file's original residuals. Singular EPS + gap fits withhold that baseline comparison. The same analysis runs on loaded JSON files.
 5. **Multi-quarter trajectory.** Single-call sentiment is noise; the *change* in tone across quarters is where any signal would live.
 
+## What twelve calls show
+
+The real run is a small, tested pipeline (transcript → the two halves → model scores validated against one schema → a static page) run once on twelve calls: the four most recent of Microsoft (FY26 Q1–Q4), Alphabet and Meta (Q3 2025–Q2 2026), scored by `claude-sonnet-5` on 2026-09-25.
+
+**No reliable evidence that analyst pushback explains the post-call move after EPS.** Across the twelve scored calls, gap versus held-out EPS residual has **r = 0.03, approximate 95% interval −0.56 to +0.59**. Leave-one-out prediction RMSE: **EPS + gap 11.59 pp; EPS only 10.77 pp; training mean 8.75 pp** (lower is better). Removing one call and refitting gives r from **−0.10 to +0.31**. Reproduce these figures offline: `node docs/report-analysis.cjs`.
+
+The interval is a Fisher approximation assuming independent calls. Repeated companies and shared training folds break that assumption; its coverage is not calibrated. This is an exploratory check on three companies, not a chronological backtest or a finding.
+
+Twelve calls cannot show whether tone predicts returns, so this is not a trading signal. Three limits show up in the real run, and the page states each one where it applies:
+
+- **The residual is a model leftover, not an earned return.** The analysis page replaces the historical hand-picked 1.5 × EPS control with an intercept and EPS coefficient fitted on all the other calls. It re-derives every displayed residual and keeps warnings when the EPS control dominates or a residual passes ±100%. The historical pipeline output remains intact as input; its residual column is superseded in the analysis view. See [Honest caveats](#honest-caveats).
+- **No topic was matched across the two halves.** Topics are matched by name, and on the latest call of each of the three companies none matched (18 of 18 topics belong to one half), so the topic-level gap has nothing to show on this data.
+- **One run of one model**, not checked against human labels.
+
 ## How it fits together
 
 ```mermaid
@@ -95,28 +92,9 @@ flowchart LR
 | Wrangling | pandas |
 | Dashboard | static HTML + hand-drawn SVG, no framework, no CDN scripts |
 
-## Checks and the evaluation set
-
-```bash
-pip install -r requirements-dev.txt
-python -m pytest -q
-python -m src.eval
-python -m src.eval --break
-node docs/check-web.mjs
-node --test docs/analysis.test.cjs
-node docs/report-analysis.cjs
-```
-
-- `tests/` covers the transcript splitter (every operator phrasing the regex claims to recognise, the no-marker case, first match wins, an opening announcement of a later Q&A is not the hand-off), the quote filter for published data (prepared remarks only, 25 words, word for word, no elisions), the residual-return arithmetic and trading-day windows on a fixed synthetic series, and the dashboard export (topic merging across sections, Q&A-only topics, NaN rows dropped rather than zeroed). No network access.
-- `src/eval.py` scores the extraction step on `eval/passages.json`: 30 synthetic passages (six per tag) and 10 synthetic guidance snippets. It runs through the project's own analyzer — same prompt, same schema — and records the model name and date in `eval/llm-cache.json`. The cache now holds the 2026-09-25 run with `claude-sonnet-5`, the default at the time (the default is now `claude-sonnet-5-5`, not yet scored on this set): **30/30 passages and 10/10 guidance snippets** (six right out of six for each of confident, hedging, evasion, admission and contradiction). The earlier 2026-09-22 run with `claude-haiku-4-5-20251001` had the same score; its cache is in the git history. Without the cache it reports **NOT RUN** (exit code 2) rather than a made-up number. `--break` is the negative control: a cached tag outside the schema must be refused. This is a small evaluation set, not a formal evaluation pipeline — and `eval/llm-cache.json` is the whole of what that run left behind: it records the model name and date, nothing here shows a request went over the network, and a hand-written cache would be indistinguishable from it.
-- `docs/check-web.mjs` asserts the dashboard loads no external scripts, that the demo and the real data pass the loader's own validation, that every real transcript source is the company's own investor-relations site and every real quote is at most 25 words, that the page opens on the real data, that mutated files are rejected with specific messages, and that the correlation helper is right.
-- `docs/analysis.test.cjs` checks fitted coefficients against exact synthetic arithmetic, exclusion of the held-out outcome, prediction baselines, interval endpoints, full refits for delete-one sensitivity, missing/degenerate inputs and the impossible-residual warning. The historical Python pipeline and scored files are unchanged; analysis consumes their raw EPS, sector returns and tone fields.
-
-CI runs all of the above on every push (Python 3.10 and 3.13; the eval score only once the cache exists).
-
 ## Choosing a model provider, caching
 
-Scoring works with Claude (default), OpenAI, Google Gemini, any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, gateways), or a ChatGPT Plus/Pro plan with no API key (that last one is built but not yet tried with a real sign-in):
+Scoring works with Claude (default), OpenAI, Google Gemini, any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, gateways), or a ChatGPT Plus/Pro plan with no API key (built from OpenAI's documentation; see [DOCS.md](DOCS.md#12-continue-with-chatgpt-your-chatgpt-plan-no-api-key)):
 
 ```bash
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider anthropic                    # ANTHROPIC_API_KEY
@@ -124,7 +102,7 @@ python -m src.cli --tickers NWSC --quarters 2025Q2 --provider openai            
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider gemini --model your-model-id  # GEMINI_API_KEY
 python -m src.cli --tickers NWSC --quarters 2025Q2 --provider openai-compatible \
     --base-url http://localhost:11434/v1 --model your-model-id                             # LLM_API_KEY if the server needs one
-python -m src.cli --tickers NWSC --quarters 2025Q2 --provider chatgpt --model your-model-id # your ChatGPT plan (not yet tried live), see below
+python -m src.cli --tickers NWSC --quarters 2025Q2 --provider chatgpt --model your-model-id # your ChatGPT plan, see DOCS.md
 ```
 
 The same variables work from `.env` (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`). Claude defaults to `claude-sonnet-5-5` and OpenAI to `gpt-4o-mini`; Gemini and OpenAI-compatible endpoints need a model id. Sonnet 5.5 thinks before it answers and the thinking counts toward `max_tokens`, so requests allow 16,000 output tokens; a refusal or a reply cut off at the limit is an error, never a half-read answer.
@@ -139,29 +117,23 @@ The same variables work from `.env` (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`
 | OpenAI-compatible | `--provider openai-compatible --base-url … --model …` | Same checks against a local mock. **Not run against a real Ollama, LM Studio or vLLM server.** |
 | ChatGPT plan (Continue with ChatGPT) | `--provider chatgpt --model …` after a one-time `python -m src.chatgpt_auth login` | Sign-in, refresh, sign-out and the Responses stream checked against a local mock of OpenAI's documented flow, with the ID token signed by a real RSA key (`tests/test_chatgpt_auth.py`), plus the analyzer end to end (`tests/test_llm_providers.py`); `tests/chatgpt_mutants.py` breaks each of 40 rules once and the tests catch every one. **Not yet signed in against the live service.** |
 
-### Continue with ChatGPT (your ChatGPT plan, no API key)
+Transcripts and LLM responses are cached under `./cache/`. The LLM cache key is `(provider/mode, model, prompt hash, section, text)`, so changing the provider, model, structured-output mode or prompt re-runs, and repeating the same configuration is free.
 
-**Status: not yet tried with a real sign-in.** The flow is built from OpenAI's documentation and tested against a local mock of it. Nobody has signed in to the live service with this tool, so everything below describes what the documentation says should happen, not something that has been seen to work.
+## Checks and the evaluation set
 
-This provider is meant to run the model step on a ChatGPT Plus or Pro plan instead of an API key. It follows OpenAI's official **Sign in with ChatGPT** flow for open-source, locally hosted apps ([OpenAI's documentation](https://developers.openai.com/siwc/token-sharing-open-source)); no unofficial endpoint and no scraped session is involved.
+[![Check](https://img.shields.io/github/actions/workflow/status/NickkkLian/Earnings-Call-Sentiment-Analyser/check.yml?branch=main&label=check&style=flat-square&labelColor=2f5859)](https://github.com/NickkkLian/Earnings-Call-Sentiment-Analyser/actions/workflows/check.yml)
 
-```sh
-python -m src.chatgpt_auth login        # opens your browser: sign in to ChatGPT and allow the app to use your plan
-python -m src.chatgpt_auth models       # the model ids your plan can use
-python -m src.cli --tickers NWSC --quarters 2025Q2 --provider chatgpt --model a-model-id-from-that-list
-python -m src.chatgpt_auth status       # who is signed in and whether plan usage is on (never prints a token)
-python -m src.chatgpt_auth logout       # revokes the session at OpenAI, then clears the local tokens
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
+python -m src.eval
+python -m src.eval --break
+node docs/check-web.mjs
+node --test docs/analysis.test.cjs
+node docs/report-analysis.cjs
 ```
 
-**What it needs** (per OpenAI's documentation). An eligible ChatGPT Plus or Pro plan. Other accounts can sign in, but OpenAI answers their requests with `subscription_sharing_user_not_eligible`; that error is shown as it came, with the other providers named. Nothing switches to another provider or to an API key on its own. On Plus, the five-hour usage limit is shared with every other app that uses your plan; usage and per-app limits are at [chatgpt.com/settings/usage](https://chatgpt.com/settings/usage).
-
-**Preview limits** ([OpenAI's list](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)). Responses API only; every request is sent with `store: false` and `stream: true`; fields such as `max_output_tokens` and `temperature` are not accepted, so this provider sends neither (the 16,000-token output allowance above does not apply to it).
-
-**How it is built.** The first `login` registers "CallDelta" as an agent on your ChatGPT account (`client_id=dynamic_agent_client`, a browser callback on `http://127.0.0.1:1455/auth/callback` or another free port, PKCE, no client secret); later sign-ins reuse the client id OpenAI issued. The ID token is checked against OpenAI's published keys (RS256 signature, issuer, audience, expiry, nonce), and plan usage counts as on only when OpenAI grants `chatgpt.tokens.use.direct`. The signature check uses the standard library, because `src/chatgpt_auth.py` and `src/llm.py` are written without third-party packages (the rest of the project is not: `requirements.txt` lists nine); OpenAI's guide suggests a maintained JWT library where one can be used. Tokens are stored in `~/.config/calldelta/chatgpt/` (or `CHATGPT_AUTH_DIR`), one file per account, written atomically with mode 0600; never in this repository, never printed or logged. The access token is refreshed about five minutes before it expires, and the rotating refresh token is replaced at the same time.
-
-`--structured native` stays limited to Anthropic and OpenAI API keys; with `chatgpt` the default `json` mode is used.
-
-Transcripts and LLM responses are cached under `./cache/`. The LLM cache key is `(provider/mode, model, prompt hash, section, text)`, so changing the provider, model, structured-output mode or prompt re-runs, and repeating the same configuration is free.
+`tests/` covers the transcript splitter, the quote filter, the residual-return arithmetic and the dashboard export, with no network access. `src/eval.py` scores the extraction step on 30 synthetic passages and 10 guidance snippets; the 2026-09-25 run with `claude-sonnet-5` tagged **30/30 passages and 10/10 guidance snippets**. `docs/check-web.mjs` checks the dashboard and its data, and `docs/analysis.test.cjs` checks the fitted analysis. CI runs all of the above on every push (Python 3.10 and 3.13; the eval score only once the cache exists). What each check covers, in full: [DOCS.md](DOCS.md#11-checks-and-the-evaluation-set-in-full).
 
 ## Honest caveats
 
