@@ -1,8 +1,5 @@
 # Documentation
 
-> A complete walkthrough of CallDelta — what it is,
-> how it works, how to extend it, and how to run it from zero.
-
 ---
 
 ## Table of Contents
@@ -16,7 +13,7 @@
 7. [User guide](#7-user-guide-running-it-from-zero)
 8. [How to extend it](#8-how-to-extend-it)
 9. [Troubleshooting](#9-troubleshooting)
-10. [Honest caveats](#10-honest-caveats)
+10. [Caveats](#10-caveats)
 11. [Checks and the evaluation set, in full](#11-checks-and-the-evaluation-set-in-full)
 12. [Continue with ChatGPT](#12-continue-with-chatgpt-your-chatgpt-plan-no-api-key)
 
@@ -42,9 +39,6 @@ Three concrete decisions follow from that thesis:
    marginal information in *how* people spoke, not what was reported.
 3. **Track the trajectory across many quarters.** Single-call sentiment is
    noisy; the *change* in tone over time is informative.
-
-That's the whole project in three bullets. Everything else is plumbing to
-make those measurable cleanly.
 
 ---
 
@@ -317,8 +311,8 @@ confident. Top 4 surface in the dashboard.
 
 ### `src/cli.py` — entry point
 
-Argparse, `.env` loading, prints per-ticker correlations at the end. That's
-it. Deliberately thin — most logic lives in the tested modules.
+Argparse, `.env` loading, prints per-ticker correlations at the end.
+Deliberately thin — most logic lives in the tested modules.
 
 ---
 
@@ -342,8 +336,6 @@ with a specific message and the current data is kept.
 **Panels:** KPI strip (current quarter with delta vs prior), trajectory (management vs Q&A tone, framing gap shaded),
 topic emphasis (weight bar + per-section tone, wide gaps flagged), gap-vs-residual scatter (one point per call, Pearson r
 shown with n), notable extracts (tagged passages), methodology, and an honesty footer.
-
-The previous React/Recharts `dashboard.jsx` was removed in favour of this folder so there is one implementation to keep honest.
 
 ## 7. User guide (running it from zero)
 
@@ -490,10 +482,9 @@ python -m src.cli --tickers NVDA,INTC --quarters ... \
 
 ---
 
-## 10. Honest caveats
+## 10. Caveats
 
-**This is a methodology demo, not a tradeable signal.** A few things to be
-upfront about:
+**This is a methodology demo, not a tradeable signal.**
 
 - **Sample size.** The real run is twelve calls, and even a few hundred would
   be small. Don't claim the sentiment-gap → residual-return correlation as
@@ -507,10 +498,6 @@ upfront about:
 - **LLM extraction is not infallible.** Tone scores from an LLM are
   reasonably consistent but not calibrated to any external ground truth.
   Treat them as ordinal, not cardinal.
-
-These aren't reasons not to do the project — they're the reasons it's
-*honest* about what it shows. Calling them out is itself a signal of
-research maturity.
 
 ---
 
